@@ -39,9 +39,4 @@ class PostController extends Controller
             $item->saves = DB::table('save')->where('post_id',$item->post_id)->exit();
         }
     }
-    public function store(Request $request){
-        $validate = Validator::make($request->all(),[
-            ''
-        ]);
-    }
 }

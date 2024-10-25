@@ -233,7 +233,7 @@ return [
         "floor"=>" طبقه ",
         "block_NO"=>" شماره بلوک ",
         "registration_location"=>" حوزه ثبتی ",
-        "location"=>" حدود ",
+        // "location"=>" حدود ",
         "part"=>" بخش ",
         "area_portion"=>" مساحت شش دانگ ",
         "estate_type"=>" نوع ملک ",
@@ -310,5 +310,9 @@ return [
         'history'=>'متن خاطره',
         'location'=>'لوکیشن',
         'bio'=>"توضیحات اکانت",
+        "user_id"=>"آیدی کاربر",
+        "tag_id"=>"تگ",
+        "caption"=>"توضیحات پست",
+        "image_post"=>"عکس پست",
     ],
 ];

@@ -40,6 +40,10 @@ class PostController extends Controller
             $item->likes = DB::table('like')->where('post_id', $item->post_id)->exit();
             $item->saves = DB::table('save')->where('post_id', $item->post_id)->count();
         }
+        return response()->json([
+            'status' => 201,
+            "messages" => $posts['all_post'],
+        ]);
     }
     public function store(Request $request)
     {

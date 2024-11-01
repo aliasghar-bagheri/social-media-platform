@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Validator;
 
 use function PHPUnit\Framework\isNull;
@@ -88,14 +89,26 @@ class UserController extends Controller
             ], 401);
         }
 
+        // $token = $user->createToken('auth_token')->plainTextToken;
+
+        // return response()->json([
+        //     'status' => 200,
+        //     'access_token' => $token,
+        //     'token_type' => 'Bearer',
+        //     'user' => $user,
+        // ]);
+        // ایجاد توکن و تنظیم به عنوان کوکی HttpOnly
         $token = $user->createToken('auth_token')->plainTextToken;
 
+        // ایجاد کوکی HttpOnly
+        $cookie = cookie('access_token', $token, 60 * 24, null, null, true, true, false, 'Strict');
+
+        // ارسال پاسخ با کوکی httpOnly
         return response()->json([
             'status' => 200,
-            'access_token' => $token,
-            'token_type' => 'Bearer',
+            'message' => 'Login successful',
             'user' => $user,
-        ]);
+        ])->withCookie($cookie);
     }
 
     public function logout(Request $request)

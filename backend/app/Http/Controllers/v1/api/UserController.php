@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 use function PHPUnit\Framework\isNull;
 
@@ -20,7 +21,7 @@ class UserController extends Controller
     {
         $response["response"] = [
             "success" => false,
-            "message" => "مشکل نا مشخصی به وجود آمده لطفا با پشتیبانی برنامه در ارتباط باشید.",
+            "message" => "you've proble please call with app suported.",
             "code" => 400,
         ];
         $validate = Validator::make($request->all(), [
@@ -35,11 +36,12 @@ class UserController extends Controller
         if ($validate->fails()) {
             return response()->json([
                 'status' => 500,
-                'error_message' => $validate->errors(),
+                'message' => $validate->errors(),
             ]);
         }
 
         $user = User::create([
+            // 'id' => Str::uuid(),
             'phone' => $request->phone,
             'username' => $request->username,
             'name' => $request->name,
@@ -56,14 +58,18 @@ class UserController extends Controller
             User::whereId($user->id)->update(['profile' => $path . $name]);
         }
 
+        // $token = $user->createToken('auth_token')->plainTextToken;
         $token = $user->createToken('auth_token')->plainTextToken;
+
+        // ایجاد کوکی HttpOnly
+        $cookie = cookie('access_token', $token, 60 * 24, null, null, true, true, false, 'Strict');
 
         return response()->json([
             'access_token' => $token,
             'token_type' => 'Bearer',
             'status' => 201,
             'user' => User::find($user->id),
-        ]);
+        ])->withCookie($cookie);
         return json_encode($response, JSON_UNESCAPED_UNICODE);
     }
 
@@ -85,8 +91,9 @@ class UserController extends Controller
         $user = User::where('email', $request->email)->first();
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
-                'message' => 'اطلاعات ورود نادرست است'
-            ], 401);
+                "status" => 401,
+                'message' => 'Not found your email or password'
+            ]);
         }
 
         // $token = $user->createToken('auth_token')->plainTextToken;
@@ -116,7 +123,7 @@ class UserController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
-            'message' => 'شما با موفقیت از سیستم خارج شدید'
+            'message' => 'Logout successfuly!'
         ]);
     }
 

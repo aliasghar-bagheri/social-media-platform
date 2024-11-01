@@ -12,10 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('comment_reply', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('comment_id');
+            $table->string('id',50);
+            $table->string('comment_id');
             $table->foreign('comment_id')->references('id')->on('comments');
-            $table->unsignedBigInteger('post_id');
+            $table->string('post_id');
             $table->foreign('post_id')->references('id')->on('posts')->onDelete('cascade');
             $table->string('content');
             $table->timestamp('created_at')->useCurrent();

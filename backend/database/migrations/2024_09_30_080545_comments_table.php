@@ -12,10 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('comments', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('user_id');
+            $table->string('id',50);
+            $table->string('user_id');
             $table->foreign('user_id')->references('id')->on('users');
-            $table->unsignedBigInteger('post_id');
+            $table->string('post_id');
             $table->foreign('post_id')->references('id')->on('posts')->onDelete('cascade');
             $table->tinyInteger('pin')->default(0);
             $table->string('content');

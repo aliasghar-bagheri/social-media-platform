@@ -7,11 +7,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class PostController extends Controller
 {
     public function list()
     {
+        // return Str::uuid();
         $posts['all_post'] = DB::table('posts')
             ->join('users', 'posts.user_id', 'users.id')
             ->join('post_image', 'posts.id', 'post_image.post_id')
@@ -39,10 +41,11 @@ class PostController extends Controller
         foreach ($posts['all_post'] as $item) {
             $item->likes = DB::table('like')->where('post_id', $item->post_id)->exit();
             $item->saves = DB::table('save')->where('post_id', $item->post_id)->count();
+            $item->post_image = DB::table('post_image')->where('post_id', $item->post_id)->get();
         }
         return response()->json([
-            'status' => 201,
-            "messages" => $posts['all_post'],
+            'status' => 200,
+            "data" => $posts['all_post'],
         ]);
     }
     public function store(Request $request)
@@ -63,6 +66,7 @@ class PostController extends Controller
         }
 
         $post_id = DB::table('posts')->insertGetId([
+            'id' => Str::uuid(),
             'user_id' => $request->user_id,
             'caption' => $request->caption,
             'location' => $request->location,

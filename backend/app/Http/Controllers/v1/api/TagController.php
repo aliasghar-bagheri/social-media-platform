@@ -5,6 +5,7 @@ namespace App\Http\Controllers\v1\api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
 
 class TagController extends Controller
@@ -42,6 +43,7 @@ class TagController extends Controller
         }
 
         DB::table('tags')->insert([
+            'id' => str::uuid(),
             'tag' => $request->tag
         ]);
 

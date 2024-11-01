@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('posts', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('user_id');
+            $table->string('id',50);
+            $table->string('user_id');
             $table->foreign('user_id')->references('id')->on('users');
             $table->string('caption');
             $table->string('image_url');

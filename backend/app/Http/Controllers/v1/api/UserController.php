@@ -65,7 +65,6 @@ class UserController extends Controller
         $cookie = cookie('access_token', $token, 60 * 24, null, null, true, true, false, 'Strict');
 
         return response()->json([
-            'access_token' => $token,
             'token_type' => 'Bearer',
             'status' => 201,
             'user' => User::find($user->id),
@@ -107,8 +106,19 @@ class UserController extends Controller
         // ایجاد توکن و تنظیم به عنوان کوکی HttpOnly
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        // ایجاد کوکی HttpOnly
-        $cookie = cookie('access_token', $token, 60 * 24, null, null, true, true, false, 'Strict');
+        // ایجاد کوکی HttpOnly بدون Secure (برای درخواست‌های HTTP)
+        $domain = "localhost";
+        $cookie = cookie(
+            'access_token',     // نام کوکی
+            $token,             // مقدار کوکی (توکن)
+            60 * 24,            // زمان انقضا (دقیقه)
+            '/',                // مسیر
+            $domain,            // دامنه
+            false,              // Secure (تنظیم به false برای HTTP)
+            true,               // HttpOnly
+            false,              // Raw
+            'Lax'               // SameSite
+        );
 
         // ارسال پاسخ با کوکی httpOnly
         return response()->json([
@@ -116,6 +126,14 @@ class UserController extends Controller
             'message' => 'Login successful',
             'user' => $user,
         ])->withCookie($cookie);
+
+
+        // ارسال پاسخ با کوکی httpOnly
+        // return response()->json([
+        //     'status' => 200,
+        //     'message' => 'Login successful',
+        //     'user' => $user,
+        // ])->withCookie($cookie);
     }
 
     public function logout(Request $request)

@@ -14,7 +14,11 @@ Route::get('/user', function (Request $request) {
 Route::post('/register', [UserController::class, 'register']);
 Route::post('/login', [UserController::class, 'login']);
 Route::post('/update_info',[UserController::class,'update']);
-Route::middleware('auth:sanctum')->post('/logout', [UserController::class, 'logout']);
+// Route::middleware('auth:sanctum')->post('/logout', [UserController::class, 'logout']);
+// Route::middleware(['auth:sanctum','ApiAuthFallback'])->post('/logout', [UserController::class, 'logout']);
+Route::post('/logout', [UserController::class, 'logout']);
+// Route::middleware('auth:sanctum')->post('/logout', [UserController::class, 'logout']);
+
 
 Route::post('list',[TagController::class,'index']);
 Route::post('store_tag',[TagController::class,'store']);

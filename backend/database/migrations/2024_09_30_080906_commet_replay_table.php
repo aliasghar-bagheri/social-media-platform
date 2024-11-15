@@ -13,10 +13,10 @@ return new class extends Migration
     {
         Schema::create('comment_reply', function (Blueprint $table) {
             $table->string('id',50);
-            $table->string('comment_id');
-            $table->foreign('comment_id')->references('id')->on('comments');
-            $table->string('post_id');
-            $table->foreign('post_id')->references('id')->on('posts')->onDelete('cascade');
+            $table->string('comment_id',50);
+            // $table->foreign('comment_id')->references('id')->on('comments');
+            $table->string('post_id',50);
+            // $table->foreign('post_id')->references('id')->on('posts')->onDelete('cascade');
             $table->string('content');
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();

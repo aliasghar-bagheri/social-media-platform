@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('post_image', function (Blueprint $table) {
             $table->string('id',50);
-            $table->string('post_id');
-            $table->foreign('post_id')->references('id')->on('posts')->onDelete('cascade');
+            $table->string('post_id',50);
+            // $table->foreign('post_id')->references('id')->on('posts')->onDelete('cascade');
             $table->string('url');
         });
     }

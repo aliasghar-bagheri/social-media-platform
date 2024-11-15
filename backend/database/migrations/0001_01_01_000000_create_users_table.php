@@ -18,9 +18,9 @@ return new class extends Migration
             $table->string('username')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->string('bio');
-            $table->string('profile');
-            $table->string('phone');
+            $table->string('bio')->nullable();
+            $table->string('profile')->nullable();
+            $table->string('phone')->nullable();
             $table->rememberToken();
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();

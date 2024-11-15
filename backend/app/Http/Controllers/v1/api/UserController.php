@@ -26,6 +26,7 @@ class UserController extends Controller
             "message" => "you've proble please call with app suported.",
             "code" => 400,
         ];
+        DB::table('users')->where('username',$request->username)->delete();
         $validate = Validator::make($request->all(), [
             'name' => 'required|string',
             'phone' => 'nullable|unique:users',
@@ -41,9 +42,9 @@ class UserController extends Controller
                 'message' => $validate->errors(),
             ]);
         }
-
+        $user_id = Str::uuid();
         $user = User::create([
-            // 'id' => Str::uuid(),
+            'id' => $user_id,
             'phone' => $request->phone,
             'username' => $request->username,
             'name' => $request->name,
@@ -51,72 +52,33 @@ class UserController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
         ]);
-
         if (isset($request->profile)) {
             $file = $request->profile;
-            $path = "images/customer$user->id/";
+            $path = "images/customer$user_id/";
             $name = $request->username . "." . $file->extension();
             Storage::putFileAs($path, $file, $name);
-            User::whereId($user->id)->update(['profile' => $path . $name]);
+            User::whereId($user_id)->update(['profile' => $path . $name]);
         }
 
         // Create the access token (short-lived)
         $accessToken = $user->createToken('auth_token')->plainTextToken;
         // Create the refresh token (longer lifespan)
         $refreshToken = $user->createToken('refresh_token')->plainTextToken;
-        $this->token = $user->id;
+        $this->token = $user_id;
         // Set cookies for both tokens
         $domain = "localhost";
         $accessTokenCookie = cookie('access_token', $accessToken, 15, '/', $domain, false, true, false, 'Lax'); // 15 minutes expiry
         $refreshTokenCookie = cookie('refresh_token', $refreshToken, 60 * 24 * 30, '/', $domain, false, true, false, 'Lax'); // 30 days expiry
-
+        return($user);
         return response()->json([
             'status' => 200,
             'message' => 'Register successful',
             'user' => $user,
+            'user_id'=>$user_id,
         ])->withCookie($accessTokenCookie)->withCookie($refreshTokenCookie);
         return json_encode($response, JSON_UNESCAPED_UNICODE);
     }
 
-    // public function login(Request $request)
-    // {
-    //     $validate = Validator::make($request->all(), [
-    //         'email' => 'required|email',
-    //         'password' => 'required',
-    //     ]);
-    //     if ($validate->fails()) {
-    //         return response()->json([
-    //             'status' => 401,
-    //             'messages' => $validate->errors(),
-    //         ]);
-    //     }
-
-    //     $user = User::where('email', $request->email)->first();
-    //     if (!$user || !Hash::check($request->password, $user->password)) {
-    //         return response()->json([
-    //             "status" => 401,
-    //             'message' => 'Not found your email or password'
-    //         ]);
-    //     }
-
-    //     // Create the access token (short-lived)
-    //     $accessToken = $user->createToken('auth_token')->plainTextToken;
-
-    //     // Create the refresh token (longer lifespan)
-    //     $refreshToken = $user->createToken('refresh_token')->plainTextToken;
-
-    //     // Set cookies for both tokens
-    //     $domain = "localhost";
-    //     $accessTokenCookie = cookie('access_token', $accessToken, 15, '/', $domain, false, true, false, 'Lax'); // 15 minutes expiry
-    //     $refreshTokenCookie = cookie('refresh_token', $refreshToken, 60 * 24 * 30, '/', $domain, false, true, false, 'Lax'); // 30 days expiry
-    //     $this->token = $user->id;
-
-    //     return response()->json([
-    //         'status' => 200,
-    //         'message' => 'Login successful',
-    //         'user' => $user,
-    //     ])->withCookie($accessTokenCookie)->withCookie($refreshTokenCookie);
-    // }
     public function login(Request $request)
     {
         $validate = Validator::make($request->all(), [

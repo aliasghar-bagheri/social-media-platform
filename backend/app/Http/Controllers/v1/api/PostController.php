@@ -64,9 +64,9 @@ class PostController extends Controller
                 "messages" => $validate->errors(),
             ]);
         }
-
-        $post_id = DB::table('posts')->insertGetId([
-            'id' => Str::uuid(),
+        $post_id = Str::uuid();
+        DB::table('posts')->insert([
+            'id' => $post_id,
             'user_id' => $request->user_id,
             'caption' => $request->caption,
             'location' => $request->location,

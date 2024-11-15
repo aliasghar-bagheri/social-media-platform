@@ -13,11 +13,11 @@ return new class extends Migration
     {
         Schema::create('posts', function (Blueprint $table) {
             $table->string('id',50);
-            $table->string('user_id');
-            $table->foreign('user_id')->references('id')->on('users');
-            $table->string('caption');
+            $table->string('user_id',50);
+            // $table->foreign('user_id')->references('id')->on('users');
+            $table->string('caption')->nullable();
             $table->string('image_url');
-            $table->string('location');
+            $table->string('location')->nullable();
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
         });

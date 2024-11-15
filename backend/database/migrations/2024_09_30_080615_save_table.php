@@ -13,10 +13,10 @@ return new class extends Migration
     {
         Schema::create('save', function (Blueprint $table) {
             $table->string('id',50);
-            $table->string('user_id');
-            $table->foreign('user_id')->references('id')->on('users');
-            $table->string('post_id');
-            $table->foreign('post_id')->references('id')->on('posts')->onDelete('cascade');
+            $table->string('user_id',50);
+            // $table->foreign('user_id')->references('id')->on('users');
+            $table->string('post_id',50);
+            // $table->foreign('post_id')->references('id')->on('posts')->onDelete('cascade');
         });
     }
 

@@ -19,6 +19,7 @@ class User extends Authenticatable
      */
     protected $table = 'users';
     protected $fillable = [
+        'id',
         'name',
         'username',
         'email',
@@ -27,6 +28,8 @@ class User extends Authenticatable
         'profile',
         'bio',
     ];
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     /**
      * The attributes that should be hidden for serialization.

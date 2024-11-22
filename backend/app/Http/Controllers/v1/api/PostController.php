@@ -46,7 +46,7 @@ class PostController extends Controller
         return response()->json([
             'status' => 200,
             "data" => $posts['all_post'],
-        ]);
+        ],200);
     }
     public function store(Request $request)
     {
@@ -62,7 +62,7 @@ class PostController extends Controller
             return response()->json([
                 'status' => 401,
                 "messages" => $validate->errors(),
-            ]);
+            ],401);
         }
         $post_id = Str::uuid();
         DB::table('posts')->insert([
@@ -124,6 +124,6 @@ class PostController extends Controller
         return response()->json([
             'status' => 201,
             "data" => $data,
-        ]);
+        ],201);
     }
 }

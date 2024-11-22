@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 use function PHPUnit\Framework\isNull;
 
@@ -26,7 +27,7 @@ class UserController extends Controller
             "message" => "you've proble please call with app suported.",
             "code" => 400,
         ];
-        DB::table('users')->where('username',$request->username)->delete();
+
         $validate = Validator::make($request->all(), [
             'name' => 'required|string',
             'phone' => 'nullable|unique:users',
@@ -38,9 +39,9 @@ class UserController extends Controller
         ]);
         if ($validate->fails()) {
             return response()->json([
-                'status' => 500,
-                'message' => $validate->errors(),
-            ]);
+                'status'=>'401',
+                'messages'=>$validate->errors(),
+            ],401);
         }
         $user_id = Str::uuid();
         $user = User::create([
@@ -69,13 +70,11 @@ class UserController extends Controller
         $domain = "localhost";
         $accessTokenCookie = cookie('access_token', $accessToken, 15, '/', $domain, false, true, false, 'Lax'); // 15 minutes expiry
         $refreshTokenCookie = cookie('refresh_token', $refreshToken, 60 * 24 * 30, '/', $domain, false, true, false, 'Lax'); // 30 days expiry
-        return($user);
         return response()->json([
-            'status' => 200,
+            'status' => 201,
             'message' => 'Register successful',
             'user' => $user,
-            'user_id'=>$user_id,
-        ])->withCookie($accessTokenCookie)->withCookie($refreshTokenCookie);
+        ],201)->withCookie($accessTokenCookie)->withCookie($refreshTokenCookie);
         return json_encode($response, JSON_UNESCAPED_UNICODE);
     }
 
@@ -89,15 +88,15 @@ class UserController extends Controller
             return response()->json([
                 'status' => 401,
                 'messages' => $validate->errors(),
-            ]);
+            ],401);
         }
 
         $user = User::where('email', $request->email)->first();
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
                 "status" => 401,
-                'message' => 'Not found your email or password'
-            ]);
+                'message' => 'Invalid login credentials'
+            ],401);
         }
         // سایر کدهای اعتبارسنجی و ایجاد توکن‌ها
         $accessToken = $user->createToken('auth_token')->plainTextToken;
@@ -111,7 +110,7 @@ class UserController extends Controller
             'user' => $user,
             'status' => 200,
             'message' => 'Login successful',
-        ])->withCookie($accessTokenCookie)->withCookie($refreshTokenCookie);
+        ],200)->withCookie($accessTokenCookie)->withCookie($refreshTokenCookie);
     }
 
     public function logout() {
@@ -120,9 +119,9 @@ class UserController extends Controller
     
         // بازگشت پاسخ با حذف کوکی‌ها
         return response()->json([
-            'status' => 200,
+            'status' => 201,
             'message' => 'Logout successful'
-        ])->withCookie($accessTokenCookie)->withCookie($refreshTokenCookie);
+        ],201)->withCookie($accessTokenCookie)->withCookie($refreshTokenCookie);
     }
 
 
@@ -143,7 +142,7 @@ class UserController extends Controller
             return response()->json([
                 'status' => 401,
                 'message' => $validate->errors()
-            ]);
+            ],401);
         }
         $info = DB::table('users')->whereId($request->id)->first();
         DB::table('users')->whereId($request->id)->update([
@@ -177,6 +176,6 @@ class UserController extends Controller
             'status' => 201,
             'message' => "success",
             "data" => DB::table('users')->whereId($request->id)->first()
-        ]);
+        ],201);
     }
 }

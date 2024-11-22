@@ -20,15 +20,15 @@ class TagController extends Controller
             return response()->json([
                 'status' => 401,
                 "messages" => $validate->errors(),
-            ]);
+            ],401);
         }
 
         $data["list_tags"] = DB::table('tags')->where("tag", "LIKE", "%$request->search%")->get();
 
         return response()->json([
-            'status' => 201,
+            'status' => 200,
             "data" => $data["list_tags"],
-        ]);
+        ],200);
     }
     public function store(Request $request)
     {
@@ -39,7 +39,7 @@ class TagController extends Controller
             return response()->json([
                 'status' => 401,
                 "error_message" => $validate->errors(),
-            ]);
+            ],401);
         }
 
         DB::table('tags')->insert([
@@ -49,6 +49,6 @@ class TagController extends Controller
 
         return response()->json([
             'status' => 201,
-        ]);
+        ],201);
     }
 }

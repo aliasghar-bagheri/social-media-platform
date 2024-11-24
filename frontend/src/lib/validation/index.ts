@@ -47,3 +47,5 @@ export const EditPasswordFormValidation = z.object({
 export type PostFormType = z.infer<typeof PostFormValidation>;
 export type EditProfileType = z.infer<typeof EditProfileFormValidation>;
 export type EditPasswordType = z.infer<typeof EditPasswordFormValidation>;
+export type SigninSchemaType = z.infer<typeof SigninValidation>;
+export type SignupSchemaType = z.infer<typeof SignupValidation>;

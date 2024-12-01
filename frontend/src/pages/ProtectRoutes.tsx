@@ -6,7 +6,11 @@ const ProtectRoutes = () => {
   const { user } = useAuth();
   const location = useLocation();
 
-  return user ? <Navigate to={AUTH_ROUTES.SIGN_IN} state={location} /> : <Outlet />;
+  return user === null ? (
+    <Navigate to={AUTH_ROUTES.SIGN_IN} state={{ from: location }} replace />
+  ) : (
+    <Outlet />
+  );
 };
 
 export default ProtectRoutes;

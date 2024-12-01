@@ -1,3 +1,5 @@
+import { SigninSchemaType, SignupSchemaType } from "@/lib/validation";
+
 export type T_NavLink = {
   href: string;
   icon: string;
@@ -6,8 +8,11 @@ export type T_NavLink = {
 
 export type T_AuthContext = {
   user: Omit<T_User, "password"> | null;
-  setUser: (user: T_User) => void;
+  setUser: (user: T_User | null) => void;
   isAuthentication: boolean;
+  signin: (credentials: SigninSchemaType) => Promise<void>;
+  signup: (credentials: SignupSchemaType) => Promise<void>;
+  signout: () => Promise<void>;
 };
 
 export type T_User = {

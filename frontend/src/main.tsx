@@ -9,13 +9,13 @@ import { Toaster } from "@/components/ui/toaster.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <HelmetProvider>
-      <AuthProvider>
-        <BrowserRouter>
+    <BrowserRouter>
+      <HelmetProvider>
+        <AuthProvider>
           <App />
           <Toaster />
-        </BrowserRouter>
-      </AuthProvider>
-    </HelmetProvider>
+        </AuthProvider>
+      </HelmetProvider>
+    </BrowserRouter>
   </StrictMode>,
 );

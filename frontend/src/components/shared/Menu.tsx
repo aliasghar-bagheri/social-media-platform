@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import { Button } from "../ui/button";
 import { MAIN_ROUTES } from "@/routes";
 import { X } from "lucide-react";
+import { useAuth } from "@/context/AuthProvider";
 
 type MenuProps = {
   isOpen: boolean;
@@ -9,6 +10,12 @@ type MenuProps = {
 };
 
 const Menu = ({ isOpen, onChangeOpen }: MenuProps) => {
+  const { signout } = useAuth();
+
+  const handleSignout = async () => {
+    await signout();
+  };
+
   return (
     <>
       <Button size="icon" variant="ghost" onClick={onChangeOpen}>
@@ -38,6 +45,7 @@ const Menu = ({ isOpen, onChangeOpen }: MenuProps) => {
             </li>
           </ul>
           <Button
+            onClick={handleSignout}
             variant="destructive"
             className="small-smibold mt-5 flex items-center gap-3">
             <img

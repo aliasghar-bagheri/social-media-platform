@@ -3,14 +3,21 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Profile from "../profile/Profile";
 import SidebarNavLinks from "./SidebarNavLinks";
+import { useAuth } from "@/context/AuthProvider";
 
 const Sidebar = () => {
+  const { signout } = useAuth();
+
+  const handleSignout = async () => {
+    await signout();
+  };
+
   return (
     <div className="hidden h-screen min-w-72 gap-11 border lg:flex lg:flex-col lg:items-center lg:justify-between">
       <div className="flex h-full w-10/12 flex-col justify-between py-10">
         <div className="flex w-full flex-col items-start gap-11">
           <Link to={MAIN_ROUTES.HOME}>
-            <img src="/assets/images/logo.svg" alt="logo" />
+            <img src={"/assets/images/logo.svg"} alt="logo" />
           </Link>
           <div className="flex w-full items-center justify-between">
             <Profile userId={"1"} name="Aliasghar" subtitle={`@aliasghar_hsb`} />
@@ -25,6 +32,7 @@ const Sidebar = () => {
         </div>
 
         <Button
+          onClick={handleSignout}
           variant="ghost"
           className="body-bold flex w-full items-center justify-start gap-3 py-7">
           <img src="/assets/icons/logout.svg" alt="logout" />

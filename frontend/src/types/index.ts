@@ -7,9 +7,10 @@ export type T_NavLink = {
 };
 
 export type T_AuthContext = {
-  user: Omit<T_User, "password"> | null;
-  setUser: (user: T_User | null) => void;
-  isAuthentication: boolean;
+  user: T_User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
   signin: (credentials: SigninSchemaType) => Promise<void>;
   signup: (credentials: SignupSchemaType) => Promise<void>;
   signout: () => Promise<void>;

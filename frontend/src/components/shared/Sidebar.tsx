@@ -1,12 +1,13 @@
 import { MAIN_ROUTES } from "@/routes";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import Profile from "../profile/Profile";
+import Profile from "@/components/profile/Profile";
 import SidebarNavLinks from "./SidebarNavLinks";
 import { useAuth } from "@/context/AuthProvider";
+import Spinner from "@/components/ui/Spinner";
 
 const Sidebar = () => {
-  const { signout } = useAuth();
+  const { signout, user, isLoading } = useAuth();
 
   const handleSignout = async () => {
     await signout();
@@ -20,7 +21,16 @@ const Sidebar = () => {
             <img src={"/assets/images/logo.svg"} alt="logo" />
           </Link>
           <div className="flex w-full items-center justify-between">
-            <Profile userId={"1"} name="Aliasghar" subtitle={`@aliasghar_hsb`} />
+            {isLoading ? (
+              <Spinner className="mx-auto" />
+            ) : (
+              <Profile
+                userId={user?.id}
+                profileImage={user?.profile}
+                name={user?.name}
+                subtitle={`@${user?.username}`}
+              />
+            )}
             <Link to={`${MAIN_ROUTES.NOTIFICATIONS}`} className="relative">
               <img src="/assets/icons/notification.svg" alt="notification" />
               <div className="small-semibold absolute -right-3 -top-3 h-5 w-5 rounded-lg bg-secondary-600 text-center text-dark-1">

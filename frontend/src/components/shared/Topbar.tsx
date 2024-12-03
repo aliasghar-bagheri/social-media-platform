@@ -1,11 +1,15 @@
 import { MAIN_ROUTES } from "@/routes";
 import { Link } from "react-router-dom";
 import { useState } from "react";
-import Profile from "../profile/Profile";
 import Menu from "./Menu";
+import { useAuth } from "@/context/AuthProvider";
+import Profile from "@/components/profile/Profile";
+import Spinner from "@/components/ui/Spinner";
 
 const Topbar = () => {
   const [show, setShow] = useState<boolean>(false);
+
+  const { user, isLoading } = useAuth();
 
   return (
     <header className="relative flex w-full items-center justify-between gap-3 border-b px-2 py-3 lg:hidden">
@@ -14,7 +18,11 @@ const Topbar = () => {
       </Link>
 
       <nav className="flex items-center gap-3">
-        <Profile userId={"2"} imageStyles="w-9 h-9" />
+        {isLoading ? (
+          <Spinner />
+        ) : (
+          <Profile userId={user?.id} profileImage={user?.profile} />
+        )}
 
         <Menu isOpen={show} onChangeOpen={() => setShow((prevShow) => !prevShow)} />
       </nav>

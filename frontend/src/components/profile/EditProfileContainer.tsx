@@ -3,17 +3,6 @@ import Heading from "@/components/shared/Heading";
 import ChangePassword from "./ChangePassword";
 
 const EditProfileContainer = () => {
-  const demoDataUser = {
-    profile: "/assets/images/profile.png",
-    name: "John",
-    username: "John",
-    email: "example@gmail.com",
-    phone: "123456789",
-    bio: "Hello World",
-  };
-
-  const handleEditProfile = () => {};
-
   return (
     <>
       <div className="flex w-full flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
@@ -32,10 +21,7 @@ const EditProfileContainer = () => {
         </Heading>
         <ChangePassword />
       </div>
-      <EditProfileForm
-        initialData={demoDataUser}
-        handleEditProfile={handleEditProfile}
-      />
+      <EditProfileForm />
     </>
   );
 };

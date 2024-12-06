@@ -61,15 +61,19 @@ class UserController extends Controller
             Storage::putFileAs($path, $file, $name);
             User::whereId($user_id)->update(['profile' => $path . $name]);
         }
-
+        
+        $user->profile = env('APP_URL')."/$user->profile";
+        
         $accessToken = $user->createToken('auth_token')->plainTextToken;
 
         $refreshToken = $user->createToken('refresh_token')->plainTextToken;
         $this->token = $user_id;
 
         $domain = "localhost";
-        $accessTokenCookie = cookie('access_token', $accessToken, 15, '/', $domain, false, true, false, 'Lax'); // 15 minutes expiry
+        $accessTokenCookie = cookie('access_token', $accessToken, 10080, '/', $domain, false, true, false, 'Lax'); // 7 days expiry
         $refreshTokenCookie = cookie('refresh_token', $refreshToken, 60 * 24 * 30, '/', $domain, false, true, false, 'Lax'); // 30 days expiry
+
+        
         return response()->json([
             'status' => 201,
             'message' => 'Register successful',
@@ -90,8 +94,10 @@ class UserController extends Controller
 
             if (DB::table('users')->whereId($userId)->exists() == true) {
                 $users = User::where('name', "LIKE", "%$request->search%")
-                    ->orWhere('username', "LIKE", "%$request->search%")->get();
-
+                    ->orWhere('username', "LIKE", "%$request->search%")->get(['id', 'name', 'phone', 'username', 'email', 'bio', 'profile', 'created_at', 'updated_at']);
+                foreach ($users as $item) {
+                    $item->profile = env('APP_URL') . "/$item->profile";
+                }
                 return response()->json([
                     'status' => 200,
                     'users' => $users,
@@ -120,9 +126,10 @@ class UserController extends Controller
             if ($accessTokenModel) {
                 $userId = $accessTokenModel->tokenable_id;
             }
-            if (DB::table('users')->whereId($userId)->exists()) {
-                $my_profile = User::find($userId);
-
+            $user = DB::table('users')->whereId($userId);
+            if ($user->exists()) {
+                $my_profile = $user->first(['id', 'name', 'phone', 'username', 'email', 'bio', 'profile', 'created_at', 'updated_at']);
+                $my_profile->profile = env('APP_URL') . "/$my_profile->profile";
                 return response()->json([
                     'status' => 200,
                     'user' => $my_profile,
@@ -161,11 +168,12 @@ class UserController extends Controller
         $refreshToken = $user->createToken('refresh_token')->plainTextToken;
 
 
-        $accessTokenCookie = cookie('access_token', $accessToken, 15, '/', 'localhost', false, true, false, 'Lax');
+        $accessTokenCookie = cookie('access_token', $accessToken, 10080, '/', 'localhost', false, true, false, 'Lax');
         $refreshTokenCookie = cookie('refresh_token', $refreshToken, 60 * 24 * 30, '/', 'localhost', false, true, false, 'Lax');
-
+        $login_data = User::where('email', $request->email)->first(['id', 'name', 'phone', 'username', 'email', 'bio', 'profile', 'created_at', 'updated_at']);
+        $login_data->profile = env('APP_URL') . "/$login_data->profile";
         return response()->json([
-            'user' => $user,
+            'user' => $login_data,
             'status' => 200,
             'message' => 'Login successful',
         ], 200)->withCookie($accessTokenCookie)->withCookie($refreshTokenCookie);
@@ -208,7 +216,6 @@ class UserController extends Controller
                     'name' => 'nullable',
                     'phone' => 'nullable',
                     'username' => 'nullable',
-                    'password' => 'nullable',
                     'bio' => 'nullable',
                     'email' => 'nullable',
                     'profile' => 'nullable',
@@ -222,17 +229,11 @@ class UserController extends Controller
                 $info = DB::table('users')->whereId($userId)->first();
                 DB::table('users')->whereId($userId)->update([
                     'name' => $request->name ?? $info->name,
-                    'phone' => $request->phone,
-                    'username' => $request->username,
+                    'phone' => $request->phone ?? $info->phone,
+                    'username' => $request->username ?? $info->username,
                     'bio' => $request->bio ?? $info->bio,
-                    'email' => $request->email,
+                    'email' => $request->email ?? $info->email,
                 ]);
-
-                if ($request->password) {
-                    DB::table('users')->whereId($userId)->update([
-                        'password' => Hash::make($request->password),
-                    ]);
-                }
 
                 if ($request->profile) {
                     $profile = DB::table('users')->whereId($userId)->first('profile');
@@ -242,21 +243,70 @@ class UserController extends Controller
 
                     $file = $request->profile;
                     $path = "images/customer$userId/";
-                    $name = $request->username . "." . $file->extension();
+                    $name = "profile" . "." . $file->extension();
                     Storage::putFileAs($path, $file, $name);
                     User::whereId($userId)->update(['profile' => $path . $name]);
                 }
 
+                $info = DB::table('users')->whereId($userId)->first(['name', 'phone', 'username', 'bio', 'email', 'profile']);
+                $info->profile = env('APP_URL') . "/$info->profile";
                 return response()->json([
                     'status' => 201,
                     'message' => "success",
-                    "data" => DB::table('users')->whereId($userId)->first()
+                    "data" => $info,
                 ], 201);
-            }else{
+            } else {
                 return response()->json([
                     "status" => 401,
                     "message" => "The desired user was not found",
-                ], 401); 
+                ], 401);
+            }
+        } else {
+            return response()->json([
+                "status" => 401,
+                "message" => "please login to your account",
+            ], 401);
+        }
+    }
+
+
+    public function update_password(Request $request)
+    {
+        $accessToken = request()->cookie('access_token');
+        if ($accessToken) {
+            $accessTokenModel = PersonalAccessToken::findToken($accessToken);
+            if ($accessTokenModel) {
+                $userId = $accessTokenModel->tokenable_id;
+            }
+            if (DB::table('users')->whereId($userId)->exists()) {
+
+                $validate = Validator::make($request->all(), [
+                    'current_password' => 'required|string',
+                    'new_password' => 'required|confirmed',
+                ]);
+
+                if ($validate->fails()) {
+                    return response()->json([
+                        'status' => 422,
+                        'message' => $validate->errors(),
+                    ], 422);
+                }
+                $user = DB::table('users')->whereId($userId)->first();
+                if (!Hash::check($request->current_password, $user->password)) {
+                    return response()->json([
+                        'status' => 422,
+                        'message' => "The current password is not correct",
+                    ], 422);
+                } else {
+                    DB::table('users')->whereId($userId)->update([
+                        'password' => Hash::make($request->new_password),
+                    ]);
+                }
+
+                return response()->json([
+                    'status' => 201,
+                    'message' => "password changed successfully",
+                ], 201);
             }
         } else {
             return response()->json([

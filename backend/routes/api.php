@@ -19,6 +19,7 @@ Route::prefix('user')->group(function () {
     Route::get('list', [UserController::class, 'list']);
     Route::get('profile', [UserController::class, 'profile']);
     Route::post('update', [UserController::class, 'update']);
+    Route::post('update-password', [UserController::class, 'update_password']);
 });
 Route::post('/logout', [UserController::class, 'logout']);
 

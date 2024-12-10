@@ -39,7 +39,7 @@ export const EditPasswordFormValidation = z.object({
   new_password: z
     .string()
     .min(8, { message: "Your password must be longer than 8 characters" }),
-  confirm_new_password: z
+  new_password_confirmation: z
     .string()
     .min(8, { message: "Your password must be longer than 8 characters" }),
 });

@@ -6,36 +6,42 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+const formatMessage = (messages: Record<string, unknown>): string => {
+  return Object.values(messages).flat().join("\n");
+};
+
 export const handleError = (error: unknown): string => {
-  let message: string;
   if (error instanceof AxiosError) {
-    if (error.response?.data) {
-      const valueError = error.response.data;
-      if ("messages" in valueError) {
-        const { username, email }: { username: string[]; email: string[] } =
-          error.response.data.messages;
-        message = `${username ?? ""}\n ${email ?? ""}`;
-      } else if ("message" in valueError) {
-        message = valueError.message;
-      } else {
-        message = "As error occured, Please try again";
+    const responseData = error.response?.data;
+
+    if (responseData) {
+      if ("messages" in responseData && typeof responseData.messages === "object") {
+        return formatMessage(responseData.messages);
       }
-    } else {
-      if (error.name === "CanceledError") {
-        message = "Request canceled.";
-      } else {
-        message = "As error occured, Please try again";
+      if ("message" in responseData) {
+        return typeof responseData.message === "object"
+          ? Object.values(responseData.message).flat().join("\n")
+          : String(responseData.message);
       }
+      return "As error occured, Please try again";
     }
-  } else if (error instanceof Error) {
-    message = error.message;
-  } else if (error && typeof error === "object" && "message" in error) {
-    message = String(error.message);
-  } else if (typeof error === "string") {
-    message = error;
-  } else {
-    message = "As error occured, Please try again";
+
+    return error.name === "CanceledError"
+      ? "Request canceled."
+      : "As error occured, Please try again";
   }
 
-  return message;
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (error && typeof error === "object" && "message" in error) {
+    return String(error.message);
+  }
+
+  if (typeof error === "string") {
+    return error;
+  }
+
+  return "As error occured, Please try again";
 };

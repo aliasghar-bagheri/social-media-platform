@@ -14,28 +14,45 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { EditPasswordFormValidation, EditPasswordType } from "@/lib/validation";
+import Spinner from "@/components/ui/Spinner";
+import { updatePasswordAccountApi } from "@/service/auth.service";
+import { toast } from "@/hooks/use-toast";
+import { handleError } from "@/lib/utils";
+import { useAuth } from "@/context/AuthProvider";
 
-type EditPasswordFormProps = {
-  handleEditPassword: (data: EditPasswordType) => void;
-  handleForgotPassword: () => void;
-};
+const EditPasswordForm = () => {
+  const { user, signout } = useAuth();
 
-const EditPasswordForm = ({
-  handleEditPassword,
-  handleForgotPassword,
-}: EditPasswordFormProps) => {
   const form = useForm<z.infer<typeof EditPasswordFormValidation>>({
     resolver: zodResolver(EditPasswordFormValidation),
     defaultValues: {
       current_password: "",
       new_password: "",
-      confirm_new_password: "",
+      new_password_confirmation: "",
     },
   });
 
-  const onSubmit = (values: z.infer<typeof EditPasswordFormValidation>) => {
-    handleEditPassword(values);
-    console.log(values);
+  // This is demo
+  const handleForgotPassword = () => {
+    toast({
+      title: "Change Password",
+      description: `The password change link was sent to ${user?.email}.`,
+    });
+  };
+
+  const onSubmit = async (values: EditPasswordType) => {
+    try {
+      const {
+        data: { message },
+      } = await updatePasswordAccountApi(values);
+
+      toast({ title: "Successful", description: message });
+      await signout();
+      toast({ title: "Signout", description: "Please log in to your account again" });
+    } catch (error) {
+      const message = handleError(error);
+      toast({ title: "Failed", description: message });
+    }
   };
 
   return (
@@ -82,7 +99,7 @@ const EditPasswordForm = ({
           />
           <FormField
             control={form.control}
-            name="confirm_new_password"
+            name="new_password_confirmation"
             render={({ field }) => (
               <FormItem className="w-full">
                 <FormLabel className="medium-base">Confirm Password</FormLabel>
@@ -102,7 +119,11 @@ const EditPasswordForm = ({
             <Button onClick={handleForgotPassword} type="button" variant="link">
               Forgot your password ?
             </Button>
-            <Button type="submit">Update Password</Button>
+            <Button
+              disabled={!form.formState.isValid || form.formState.isSubmitting}
+              type="submit">
+              {form.formState.isSubmitting ? <Spinner /> : "Update Password"}
+            </Button>
           </div>
         </form>
       </Form>

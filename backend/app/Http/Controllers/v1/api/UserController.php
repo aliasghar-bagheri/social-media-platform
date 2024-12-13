@@ -61,9 +61,9 @@ class UserController extends Controller
             Storage::putFileAs($path, $file, $name);
             User::whereId($user_id)->update(['profile' => $path . $name]);
         }
-        
-        $user->profile = env('APP_URL')."/$user->profile";
-        
+
+        $user->profile = env('APP_URL') . "/$user->profile";
+
         $accessToken = $user->createToken('auth_token')->plainTextToken;
 
         $refreshToken = $user->createToken('refresh_token')->plainTextToken;
@@ -73,7 +73,7 @@ class UserController extends Controller
         $accessTokenCookie = cookie('access_token', $accessToken, 10080, '/', $domain, false, true, false, 'Lax'); // 7 days expiry
         $refreshTokenCookie = cookie('refresh_token', $refreshToken, 60 * 24 * 30, '/', $domain, false, true, false, 'Lax'); // 30 days expiry
 
-        
+
         return response()->json([
             'status' => 201,
             'message' => 'Register successful',
@@ -211,7 +211,6 @@ class UserController extends Controller
                 $userId = $accessTokenModel->tokenable_id;
             }
             if (DB::table('users')->whereId($userId)->exists()) {
-
                 $validate = Validator::make($request->all(), [
                     'name' => 'nullable',
                     'phone' => 'nullable',
@@ -235,7 +234,7 @@ class UserController extends Controller
                     'email' => $request->email ?? $info->email,
                 ]);
 
-                if ($request->profile) {
+                if (file_exists($request->profile)) {
                     $profile = DB::table('users')->whereId($userId)->first('profile');
                     if ($profile->profile != null) {
                         unlink($profile->profile);

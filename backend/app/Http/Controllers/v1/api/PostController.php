@@ -72,7 +72,6 @@ class PostController extends Controller
                 $userId = $accessTokenModel->tokenable_id;
             }
             $validate = Validator::make($request->all(), [
-                'user_id' => 'required|exists:users,id',
                 'caption' => 'required',
                 'location' => 'nullable',
                 'image_post' => 'required|min:1|array',
@@ -86,20 +85,21 @@ class PostController extends Controller
                 ], 401);
             }
             $post_id = Str::uuid();
-            DB::table('posts')->insert([
+            DB::table('posts')->insertge([
                 'id' => $post_id,
-                'user_id' => $request->user_id,
+                'user_id' => $userId,
                 'caption' => $request->caption,
                 'location' => $request->location,
             ]);
             if (isset($request->image_post)) {
                 for ($i = 0; $i < sizeof($request->image_post); $i++) {
-                    $path = "images_post/users/$request->user_id/posts/$post_id";
+                    $path = "images_post/users/$userId/posts/$post_id";
                     $file = $request->image_post[$i];
                     $random_name = rand(100, 9999);
                     $name = $random_name . "." . $file->extension();
                     Storage::putFileAs($path, $file, $name);
                     DB::table('post_image')->insert([
+                        'id' => Str::uuid(),
                         'post_id' => $post_id,
                         'url' => "$path/$name",
                     ]);
@@ -120,9 +120,8 @@ class PostController extends Controller
                 ->leftJoin('tags', 'post_tag.tag_id', 'tags.id')
                 ->leftJoin('comments', 'posts.id', 'comments.post_id')
                 ->leftJoin('comment_reply', 'comments.id', 'comment_reply.comment_id')
-                // ->leftJoin('liked','posts.id','liked.post_id')
-                // ->leftJoin('save','posts.id','save.post_id')
-                ->where('posts.user_id', $request->user_id)
+                ->where('posts.user_id', $userId)
+                ->where('posts.id', $post_id)
                 ->select([
                     'posts.id as post_id',
                     'posts.caption',
@@ -137,13 +136,15 @@ class PostController extends Controller
                     'comment_reply.updated_at as update_comment_reply',
                 ])
                 ->groupBy('posts.id')
-                ->get();
-            foreach ($data as $item) {
-                $item->images_post = DB::table('post_image')->where('post_id', $item->post_id)->get();
+                ->fisrt();
+            $data->images_post = DB::table('post_image')->where('post_id', $post_id)->get(["url"]);
+            foreach ($data->images_post as $image_url) {
+                $image_url->url = env('APP_URL') . "/$image_url->url";
             }
-            return $data;
+
             return response()->json([
                 'status' => 201,
+                'message' => "Post successfully created",
                 "data" => $data,
             ], 201);
         } else {

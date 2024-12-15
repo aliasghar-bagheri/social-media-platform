@@ -14,9 +14,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { EditPasswordFormValidation, EditPasswordType } from "@/lib/validation";
-import Spinner from "@/components/ui/Spinner";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthProvider";
+import SubmitButton from "@/components/ui/SubmitButton";
 
 const EditPasswordForm = () => {
   const { user, updatePassword } = useAuth();
@@ -106,11 +106,11 @@ const EditPasswordForm = () => {
             <Button onClick={handleForgotPassword} type="button" variant="link">
               Forgot your password ?
             </Button>
-            <Button
+            <SubmitButton
               disabled={!form.formState.isValid || form.formState.isSubmitting}
-              type="submit">
-              {form.formState.isSubmitting ? <Spinner /> : "Update Password"}
-            </Button>
+              isLoading={form.formState.isSubmitting}>
+              Update password
+            </SubmitButton>
           </div>
         </form>
       </Form>

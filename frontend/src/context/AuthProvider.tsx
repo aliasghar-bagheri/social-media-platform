@@ -1,8 +1,17 @@
 import { toast } from "@/hooks/use-toast";
 import { handleError } from "@/lib/utils";
-import { SigninSchemaType, SignupSchemaType } from "@/lib/validation";
+import {
+  EditPasswordType,
+  SigninSchemaType,
+  SignupSchemaType,
+} from "@/lib/validation";
 import { AUTH_ROUTES } from "@/routes";
-import { signinApi, signoutApi, signupApi } from "@/service/auth.service";
+import {
+  signinApi,
+  signoutApi,
+  signupApi,
+  updatePasswordAccountApi,
+} from "@/service/auth.service";
 import { getCurrentUserApi } from "@/service/user.service";
 import { T_AuthContext, T_User } from "@/types";
 import { createContext, ReactNode, useContext, useEffect, useReducer } from "react";
@@ -32,12 +41,13 @@ const AuthContext = createContext<T_AuthContext>({
   isAuthenticated: false,
   isLoading: false,
   error: null,
+  updatePassword: async () => {},
   signin: async () => {},
   signup: async () => {},
   signout: async () => {},
 });
 
-const authReducer = (state: I_AuthState, action: T_AuthAction) => {
+const authReducer = (state: I_AuthState, action: T_AuthAction): I_AuthState => {
   switch (action.type) {
     case "PENDING": {
       return {
@@ -161,6 +171,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
+  // *************** Update user password
+  const updatePassword = async (passwordData: EditPasswordType) => {
+    try {
+      const {
+        data: { message },
+      } = await updatePasswordAccountApi(passwordData);
+
+      toast({ title: "Successful", description: message });
+      await signout();
+    } catch (error) {
+      const message = handleError(error);
+      toast({ title: "Failed", description: message });
+    }
+  };
+
   // *************** Get current user
   const getCurrentUser = async () => {
     dispatch({ type: "PENDING" });
@@ -192,6 +217,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     <AuthContext.Provider
       value={{
         ...state,
+        updatePassword,
         signin,
         signup,
         signout,

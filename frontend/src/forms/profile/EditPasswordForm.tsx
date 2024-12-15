@@ -15,13 +15,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { EditPasswordFormValidation, EditPasswordType } from "@/lib/validation";
 import Spinner from "@/components/ui/Spinner";
-import { updatePasswordAccountApi } from "@/service/auth.service";
 import { toast } from "@/hooks/use-toast";
-import { handleError } from "@/lib/utils";
 import { useAuth } from "@/context/AuthProvider";
 
 const EditPasswordForm = () => {
-  const { user, signout } = useAuth();
+  const { user, updatePassword } = useAuth();
 
   const form = useForm<z.infer<typeof EditPasswordFormValidation>>({
     resolver: zodResolver(EditPasswordFormValidation),
@@ -41,18 +39,7 @@ const EditPasswordForm = () => {
   };
 
   const onSubmit = async (values: EditPasswordType) => {
-    try {
-      const {
-        data: { message },
-      } = await updatePasswordAccountApi(values);
-
-      toast({ title: "Successful", description: message });
-      await signout();
-      toast({ title: "Signout", description: "Please log in to your account again" });
-    } catch (error) {
-      const message = handleError(error);
-      toast({ title: "Failed", description: message });
-    }
+    await updatePassword(values);
   };
 
   return (

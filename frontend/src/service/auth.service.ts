@@ -4,6 +4,7 @@ import {
   SigninSchemaType,
   SignupSchemaType,
 } from "@/lib/validation";
+import { I_EditUser } from "@/types";
 
 let abortControler: AbortController | null = null;
 // *************** Signin
@@ -54,6 +55,27 @@ export const updatePasswordAccountApi = async (passwordData: EditPasswordType) =
 
   const response = await http.post("/user/update-password", passwordData, {
     signal: abortControler.signal,
+  });
+
+  if (response.status === 200) {
+    abortControler = null;
+  }
+
+  return response;
+};
+
+// *************** Edit account
+export const editAccountApi = async (userData: I_EditUser) => {
+  if (abortControler) {
+    abortControler.abort();
+  }
+  abortControler = new AbortController();
+
+  const response = await http.post("/user/update", userData, {
+    signal: abortControler.signal,
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
   });
 
   if (response.status === 200) {

@@ -33,6 +33,15 @@ export type T_User = {
   updated_at?: string;
 };
 
+export interface I_EditUser {
+  profile?: string | File;
+  name: string;
+  username: string;
+  email: string;
+  phone?: string;
+  bio?: string;
+}
+
 export type T_Post = {
   id: string;
   user_id: string;

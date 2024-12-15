@@ -7,13 +7,14 @@ import {
 } from "@/lib/validation";
 import { AUTH_ROUTES } from "@/routes";
 import {
+  editAccountApi,
   signinApi,
   signoutApi,
   signupApi,
   updatePasswordAccountApi,
 } from "@/service/auth.service";
 import { getCurrentUserApi } from "@/service/user.service";
-import { T_AuthContext, T_User } from "@/types";
+import { I_EditUser, T_AuthContext, T_User } from "@/types";
 import { createContext, ReactNode, useContext, useEffect, useReducer } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -27,8 +28,8 @@ type T_AuthAction =
   | { type: "SIGN_UP"; payload: { user: T_User } }
   | { type: "ERROR"; payload: { error: string } }
   | { type: "SIGN_OUT" }
-  | { type: "USER_LOADED"; payload: { user: T_User } };
-
+  | { type: "USER_LOADED"; payload: { user: T_User } }
+  | { type: "EDIT_USER"; payload: { user: T_User } };
 interface I_AuthState {
   user: T_User | null;
   isAuthenticated: boolean;
@@ -41,6 +42,7 @@ const AuthContext = createContext<T_AuthContext>({
   isAuthenticated: false,
   isLoading: false,
   error: null,
+  editUser: async () => {},
   updatePassword: async () => {},
   signin: async () => {},
   signup: async () => {},
@@ -91,6 +93,14 @@ const authReducer = (state: I_AuthState, action: T_AuthAction): I_AuthState => {
       return {
         ...state,
         user: action.payload.user,
+        isAuthenticated: true,
+        isLoading: false,
+      };
+    }
+    case "EDIT_USER": {
+      return {
+        ...state,
+        user: state.user ? { ...state.user, ...action.payload.user } : null,
         isAuthenticated: true,
         isLoading: false,
       };
@@ -171,6 +181,23 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
+  // *************** Update user
+  const editUser = async (user: I_EditUser) => {
+    try {
+      const {
+        data: { message, data },
+      } = await editAccountApi(user);
+
+      dispatch({ type: "EDIT_USER", payload: { user: data } });
+
+      toast({ title: "Success", description: message });
+    } catch (error) {
+      const message = handleError(error);
+      dispatch({ type: "ERROR", payload: { error: message } });
+      toast({ title: "Error", description: message });
+    }
+  };
+
   // *************** Update user password
   const updatePassword = async (passwordData: EditPasswordType) => {
     try {
@@ -217,6 +244,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     <AuthContext.Provider
       value={{
         ...state,
+        editUser,
         updatePassword,
         signin,
         signup,

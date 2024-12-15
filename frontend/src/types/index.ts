@@ -15,6 +15,7 @@ export type T_AuthContext = {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  editUser: (userData: I_EditUser) => Promise<void>;
   updatePassword: (passwordData: EditPasswordType) => Promise<void>;
   signin: (credentials: SigninSchemaType) => Promise<void>;
   signup: (credentials: SignupSchemaType) => Promise<void>;

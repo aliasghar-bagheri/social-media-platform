@@ -11,7 +11,7 @@ const Dialog = ({ children, onClose }: DialogProps) => {
   return (
     <div
       onClick={onClose}
-      className="fixed left-0 top-0 flex h-screen w-full items-center justify-center bg-dark-4/80 px-5">
+      className="fixed left-0 top-0 flex h-screen w-full items-center justify-center bg-dark-4/80 px-5 backdrop-blur">
       <Button
         onClick={onClose}
         variant="ghost"

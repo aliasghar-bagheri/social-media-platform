@@ -1,9 +1,6 @@
-import { z } from "zod";
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
-import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -16,19 +13,19 @@ import { Input } from "@/components/ui/input";
 import { EditProfileFormValidation, EditProfileType } from "@/lib/validation";
 
 import { Textarea } from "@/components/ui/textarea";
-import { ChangeEvent, useCallback } from "react";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/context/AuthProvider";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import SubmitButton from "@/components/ui/SubmitButton";
 
-type EditProfileFormProps = {
-  initialData?: EditProfileType;
-  handleEditProfile: (data: EditProfileType) => void;
-};
+const EditProfileForm = () => {
+  const { user: initialData, editUser } = useAuth();
 
-const EditProfileForm = ({
-  initialData,
-  handleEditProfile,
-}: EditProfileFormProps) => {
-  const form = useForm<z.infer<typeof EditProfileFormValidation>>({
+  const [preview, setPreview] = useState<string | undefined>(initialData?.profile);
+
+  const form = useForm<EditProfileType>({
     resolver: zodResolver(EditProfileFormValidation),
+    mode: "onChange",
     defaultValues: {
       profile: initialData?.profile || "",
       name: initialData?.name || "",
@@ -39,34 +36,25 @@ const EditProfileForm = ({
     },
   });
 
-  const handleProfileChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const file: FileList | null = event.target.files;
-      if (file?.length) {
-        const validationFile: boolean = file[0].type.startsWith("image/");
-        if (validationFile) {
-          const createUrl = URL.createObjectURL(file[0]);
-          form.setValue("profile", createUrl);
-          form.clearErrors("profile");
-        } else {
-          form.setError("profile", {
-            message: "Profile format can be: svg, jpg, jpeg, png",
-          });
-        }
-      } else {
-        form.setValue("profile", "");
-      }
-    },
-    [form],
-  );
+  const profileFile = form.watch("profile");
 
-  const onSubmit = (values: z.infer<typeof EditProfileFormValidation>) => {
-    handleEditProfile(values);
-    console.log(values);
+  useEffect(() => {
+    if (profileFile instanceof File) {
+      const objectUrl = URL.createObjectURL(profileFile);
+      setPreview(objectUrl);
+      // Cleanup
+      return () => {
+        URL.revokeObjectURL(objectUrl);
+      };
+    }
+  }, [profileFile]);
+
+  const onSubmit = async (values: EditProfileType) => {
+    await editUser(values);
   };
 
   return (
-    <>
+    <fieldset disabled={form.formState.isSubmitting}>
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit)}
@@ -79,13 +67,14 @@ const EditProfileForm = ({
                 <FormControl>
                   <div className="flex items-center gap-4">
                     <div className="h-24 w-24 overflow-hidden rounded-full ring-1 ring-primary-500">
-                      <img
-                        src={field.value}
-                        className="h-full w-full object-cover"
-                        alt="profile"
-                      />
+                      <Avatar className="h-full w-full">
+                        <AvatarImage src={preview} />
+                        <AvatarFallback>
+                          {initialData?.name[0].toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
                     </div>
-                    <div className="">
+                    <div>
                       <label
                         htmlFor="input-profile-upload"
                         className="base-semibold cursor-pointer text-[#0095f6]">
@@ -94,8 +83,11 @@ const EditProfileForm = ({
                       <input
                         type="file"
                         id="input-profile-upload"
-                        accept="image/*"
-                        onChange={handleProfileChange}
+                        onChange={(event) => {
+                          if (event.target.files?.[0]) {
+                            field.onChange(event.target.files[0]);
+                          }
+                        }}
                         className="hidden"
                       />
                     </div>
@@ -170,11 +162,15 @@ const EditProfileForm = ({
               </FormItem>
             )}
           />
-
-          <Button type="submit">Update Profile</Button>
+          <SubmitButton
+            disabled={!form.formState.isValid || form.formState.isSubmitting}
+            type="submit"
+            isLoading={form.formState.isSubmitting}>
+            Update Profile
+          </SubmitButton>
         </form>
       </Form>
-    </>
+    </fieldset>
   );
 };
 

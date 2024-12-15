@@ -23,13 +23,24 @@ export const PostFormValidation = z.object({
   tags: z.string(),
 });
 
+export const ImageSchema = z
+  .instanceof(File)
+  .refine((file) => file.size <= 5 * 1024 * 1024) // less than 5MB
+  .refine(
+    (file) =>
+      ["image/png", "image/jpeg", "image/jpg", "image/svg+xml"].includes(file.type),
+    {
+      message: "Profile format can be: svg, jpg, jpeg, png",
+    },
+  );
+
 export const EditProfileFormValidation = z.object({
-  profile: z.string(),
+  profile: z.string().or(ImageSchema).optional(),
   name: z.string(),
   username: z.string().min(3),
   email: z.string().email(),
-  phone: z.string(),
-  bio: z.string(),
+  phone: z.string().optional(),
+  bio: z.string().optional(),
 });
 
 export const EditPasswordFormValidation = z.object({

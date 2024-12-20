@@ -85,7 +85,7 @@ class PostController extends Controller
                 ], 401);
             }
             $post_id = Str::uuid();
-            DB::table('posts')->insertge([
+            DB::table('posts')->insert([
                 'id' => $post_id,
                 'user_id' => $userId,
                 'caption' => $request->caption,
@@ -136,10 +136,14 @@ class PostController extends Controller
                     'comment_reply.updated_at as update_comment_reply',
                 ])
                 ->groupBy('posts.id')
-                ->fisrt();
-            $data->images_post = DB::table('post_image')->where('post_id', $post_id)->get(["url"]);
-            foreach ($data->images_post as $image_url) {
-                $image_url->url = env('APP_URL') . "/$image_url->url";
+                ->get();
+
+            foreach ($data as $item) {
+                $item->images_post = DB::table('post_image')->where('post_id', $item->post_id)->get(["url"]);
+                foreach($item->images_post as $image_url)
+                {
+                    $image_url->url = env('APP_URL') . "/$image_url->url";
+                }
             }
 
             return response()->json([

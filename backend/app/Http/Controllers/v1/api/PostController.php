@@ -28,10 +28,8 @@ class PostController extends Controller
                 ->leftJoin('tags', 'post_tag.tag_id', 'tags.id')
                 ->leftJoin('comments', 'posts.id', 'comments.post_id')
                 ->leftJoin('comment_reply', 'comments.id', 'comment_reply.comment_id')
-                // ->leftJoin('liked','posts.id','liked.post_id')
-                // ->leftJoin('save','posts.id','save.post_id')
                 ->select([
-                    'posts.id as post_id',
+                    'posts.id',
                     'posts.caption',
                     'posts.location',
                     'posts.updated_at',
@@ -46,9 +44,12 @@ class PostController extends Controller
                 ->groupBy('posts.id')
                 ->get();
             foreach ($posts['all_post'] as $item) {
-                $item->likes = DB::table('like')->where('post_id', $item->post_id)->exit();
-                $item->saves = DB::table('save')->where('post_id', $item->post_id)->count();
-                $item->post_image = DB::table('post_image')->where('post_id', $item->post_id)->get();
+                $item->likes = DB::table('like')->where('post_id', $item->id)->count();
+                $item->saves = DB::table('save')->where('post_id', $item->id)->count();
+                $item->post_image = DB::table('post_image')->where('post_id', $item->id)->get();
+                foreach ($item->post_image as $image_url) {
+                    $image_url->url = env('APP_URL') . "/$image_url->url";
+                }
             }
             return response()->json([
                 'status' => 200,
@@ -75,7 +76,7 @@ class PostController extends Controller
                 'caption' => 'required',
                 'location' => 'nullable',
                 'image_post' => 'required|min:1|array',
-                "tag_id" => "nullable|exists:tags,id"
+                "tag_name" => "nullable|array",
             ]);
 
             if ($validate->fails()) {
@@ -106,42 +107,49 @@ class PostController extends Controller
                 }
             }
 
-            if (isset($request->tag_id)) {
-                for ($j = 0; sizeof($request->tag_id) > $j; $j++) {
-                    DB::table('post_tag')->insert([
-                        'post_id' => $post_id,
-                        'url' => $request->tag_id[$j],
-                    ]);
+            if (isset($request->tag_name)) {
+                for ($j = 0; sizeof($request->tag_name) > $j; $j++) {
+                    $get_tag_name = DB::table('tags')->where('tag', $request->tag_name[$j])->first();
+                    if ($get_tag_name) {
+                        DB::table('post_tag')->insert([
+                            'post_id' => $post_id,
+                            'tag_id' => $get_tag_name->id,
+                        ]);
+                    } else {
+                        $tag_id = Str::uuid();
+                        DB::table('tags')->insert([
+                            'id' => $tag_id,
+                            'tag' => $request->tag_name[$j],
+                        ]);
+                        DB::table('post_tag')->insert([
+                            'post_id' => $post_id,
+                            'tag_id' => $tag_id,
+                        ]);
+                    }
                 }
             }
             $data = DB::table('posts')
                 ->join('users', 'posts.user_id', 'users.id')
-                ->leftJoin('post_tag', 'posts.id', 'post_tag.post_id')
-                ->leftJoin('tags', 'post_tag.tag_id', 'tags.id')
-                ->leftJoin('comments', 'posts.id', 'comments.post_id')
-                ->leftJoin('comment_reply', 'comments.id', 'comment_reply.comment_id')
                 ->where('posts.user_id', $userId)
                 ->where('posts.id', $post_id)
                 ->select([
-                    'posts.id as post_id',
+                    'posts.id',
                     'posts.caption',
                     'posts.location',
+                    'posts.created_at',
                     'posts.updated_at',
-                    'users.name as user_name',
-                    'tags.tag as tag_name',
-                    'comments.content',
-                    'comments.pin',
-                    'comments.updated_at as update_comment',
-                    'comment_reply.content as content_comment_reply',
-                    'comment_reply.updated_at as update_comment_reply',
                 ])
                 ->groupBy('posts.id')
                 ->get();
 
             foreach ($data as $item) {
-                $item->images_post = DB::table('post_image')->where('post_id', $item->post_id)->get(["url"]);
-                foreach($item->images_post as $image_url)
-                {
+                $item->post_tag = DB::table('post_tag')
+                    ->join('tags', 'post_tag.tag_id', 'tags.id')
+                    ->where('post_tag.post_id', $item->id)->get(["tags.tag","tags.id"]);
+
+                $item->images_post = DB::table('post_image')->where('post_id', $item->id)->get(["url"]);
+
+                foreach ($item->images_post as $image_url) {
                     $image_url->url = env('APP_URL') . "/$image_url->url";
                 }
             }

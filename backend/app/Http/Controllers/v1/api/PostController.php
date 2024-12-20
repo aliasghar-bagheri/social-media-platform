@@ -23,29 +23,70 @@ class PostController extends Controller
             }
             $posts['all_post'] = DB::table('posts')
                 ->join('users', 'posts.user_id', 'users.id')
-                ->join('post_image', 'posts.id', 'post_image.post_id')
-                ->leftJoin('post_tag', 'posts.id', 'post_tag.post_id')
-                ->leftJoin('tags', 'post_tag.tag_id', 'tags.id')
                 ->leftJoin('comments', 'posts.id', 'comments.post_id')
                 ->leftJoin('comment_reply', 'comments.id', 'comment_reply.comment_id')
                 ->select([
                     'posts.id',
                     'posts.caption',
+                    'posts.user_id',
                     'posts.location',
+                    'posts.created_at',
                     'posts.updated_at',
-                    'users.name as user_name',
-                    'tags.tag as tag_name',
-                    'comments.content',
-                    'comments.pin',
-                    'comments.updated_at as update_comment',
-                    'comment_reply.content as content_comment_reply',
-                    'comment_reply.updated_at as update_comment_reply',
+                    // 'comments.content',
+                    // 'comments.pin',
+                    // 'comments.updated_at as update_comment',
+                    // 'comment_reply.content as content_comment_reply',
+                    // 'comment_reply.updated_at as update_comment_reply',
                 ])
-                ->groupBy('posts.id')
+                // ->groupBy('posts.id')
                 ->get();
             foreach ($posts['all_post'] as $item) {
-                $item->likes = DB::table('like')->where('post_id', $item->id)->count();
-                $item->saves = DB::table('save')->where('post_id', $item->id)->count();
+
+                $item->users = DB::table('users')->where('id', $item->user_id)->get();
+
+                $item->tags = DB::table('post_tag')
+                    ->join('tags', 'post_tag.tag_id', 'tags.id')
+                    ->where('post_tag.post_id', $item->id)
+                    ->select([
+                        'tags.id',
+                        'tags.tag',
+                    ])
+                    ->get();
+
+
+
+                $likesCount = DB::table('post_like')
+                    ->where('post_like.post_id', $item->id)
+                    ->count();
+
+                $item->post_likes = DB::table('post_like')
+                    ->join('users', 'post_like.user_id', 'users.id')
+                    ->where('post_like.post_id', $item->id)
+                    ->select([
+                        'users.name',
+                        'users.profile'
+                    ])
+                    ->get();
+                foreach ($item->post_likes as $profile_user_like) {
+                    $profile_user_like->url = env('APP_URL') . "/$profile_user_like->url";
+                }
+                $item->likes_count = $likesCount;
+
+                $countsaves = DB::table('save')->where('save.post_id', $item->id)->count();
+
+                $item->saves = DB::table('save')
+                    ->join('users', 'save.user_id', 'users.id')
+                    ->where('save.post_id', $item->id)
+                    ->select([
+                        'users.name',
+                        'users.profile',
+                    ])->where('save.post_id', $item->id)->get();
+                $item->post_image = DB::table('post_image')->where('post_id', $item->id)->get();
+                foreach ($item->saves as $profile_user_save) {
+                    $profile_user_save->url = env('APP_URL') . "/$profile_user_save->url";
+                }
+                $item->saves = $countsaves;
+
                 $item->post_image = DB::table('post_image')->where('post_id', $item->id)->get();
                 foreach ($item->post_image as $image_url) {
                     $image_url->url = env('APP_URL') . "/$image_url->url";
@@ -145,7 +186,7 @@ class PostController extends Controller
             foreach ($data as $item) {
                 $item->post_tag = DB::table('post_tag')
                     ->join('tags', 'post_tag.tag_id', 'tags.id')
-                    ->where('post_tag.post_id', $item->id)->get(["tags.tag","tags.id"]);
+                    ->where('post_tag.post_id', $item->id)->get(["tags.tag", "tags.id"]);
 
                 $item->images_post = DB::table('post_image')->where('post_id', $item->id)->get(["url"]);
 

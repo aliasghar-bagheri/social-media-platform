@@ -23,8 +23,6 @@ class PostController extends Controller
             }
             $posts['all_post'] = DB::table('posts')
                 ->join('users', 'posts.user_id', 'users.id')
-                ->leftJoin('comments', 'posts.id', 'comments.post_id')
-                ->leftJoin('comment_reply', 'comments.id', 'comment_reply.comment_id')
                 ->select([
                     'posts.id',
                     'posts.caption',
@@ -32,18 +30,15 @@ class PostController extends Controller
                     'posts.location',
                     'posts.created_at',
                     'posts.updated_at',
-                    // 'comments.content',
-                    // 'comments.pin',
-                    // 'comments.updated_at as update_comment',
-                    // 'comment_reply.content as content_comment_reply',
-                    // 'comment_reply.updated_at as update_comment_reply',
                 ])
                 // ->groupBy('posts.id')
                 ->get();
             foreach ($posts['all_post'] as $item) {
 
-                $item->users = DB::table('users')->where('id', $item->user_id)->get();
-
+                $item->users = DB::table('users')->where('id', $item->user_id)->get(['name', 'email', 'username', 'bio', 'profile']);
+                foreach ($item->users as $item_user) {
+                    $item_user->profile = env('APP_URL') . "/$item_user->profile";
+                }
                 $item->tags = DB::table('post_tag')
                     ->join('tags', 'post_tag.tag_id', 'tags.id')
                     ->where('post_tag.post_id', $item->id)
@@ -103,6 +98,8 @@ class PostController extends Controller
             ], 401);
         }
     }
+
+
     public function store(Request $request)
     {
 
@@ -116,7 +113,7 @@ class PostController extends Controller
             $validate = Validator::make($request->all(), [
                 'caption' => 'required',
                 'location' => 'nullable',
-                'image_post' => 'required|min:1|array',
+                'image_post.*' => 'required|file|mimes:jpg,png,jpeg,svg,mp4',
                 "tag_name" => "nullable|array",
             ]);
 
@@ -135,7 +132,7 @@ class PostController extends Controller
             ]);
             if (isset($request->image_post)) {
                 for ($i = 0; $i < sizeof($request->image_post); $i++) {
-                    $path = "images_post/users/$userId/posts/$post_id";
+                    $path = "media_post/users/$userId/posts/$post_id";
                     $file = $request->image_post[$i];
                     $random_name = rand(100, 9999);
                     $name = $random_name . "." . $file->extension();
@@ -200,6 +197,290 @@ class PostController extends Controller
                 'message' => "Post successfully created",
                 "data" => $data,
             ], 201);
+        } else {
+            return response()->json([
+                "status" => 401,
+                "message" => "please login to your account",
+            ], 401);
+        }
+    }
+
+
+
+    public function update(Request $request)
+    {
+
+        $accessToken = request()->cookie('access_token');
+
+        if ($accessToken) {
+            $accessTokenModel = PersonalAccessToken::findToken($accessToken);
+            if ($accessTokenModel) {
+                $userId = $accessTokenModel->tokenable_id;
+            }
+
+            $validate = Validator::make($request->all(), [
+                'post_id' => 'required|exists:posts,id',
+                'caption' => 'required',
+                'location' => 'nullable',
+                'image_post' => 'nullable|array|min:1',
+                'image_post.*' => 'nullable|file|mimes:jpg,png,jpeg,svg,mp4',
+                'tag_name' => 'nullable|array',
+            ]);
+
+            if ($validate->fails()) {
+                return response()->json([
+                    'status' => 401,
+                    "messages" => $validate->errors(),
+                ], 401);
+            }
+            $old_data = DB::table('posts')->whereId($request->post_id)->first();
+            DB::table('posts')->whereId($request->post_id)->update([
+                'caption' => $request->caption ?? $old_data->caption,
+                'location' => $request->location ?? $old_data->location,
+            ]);
+
+            // save images for post
+            if (isset($request->image_post)) {
+
+                $check_image_post = DB::table('post_image')->where('post_id', $request->post_id)->exists();
+                if ($check_image_post) {
+                    $get_image_post_for_delete = DB::table('post_image')->where('post_id', $request->post_id)->get();
+                    foreach ($get_image_post_for_delete as $item) {
+                        if ($item->url) {
+                            unlink($item->url);
+                        }
+
+                        DB::table('post_image')->whereId($item->id)->delete();
+                    }
+                }
+                for ($i = 0; $i < sizeof($request->image_post); $i++) {
+                    $path = "media_post/users/$userId/posts/$request->post_id";
+                    $file = $request->image_post[$i];
+                    $random_name = rand(100, 9999);
+                    $name = $random_name . "." . $file->extension();
+                    Storage::putFileAs($path, $file, $name);
+                    DB::table('post_image')->insert([
+                        'id' => Str::uuid(),
+                        'post_id' => $request->post_id,
+                        'url' => "$path/$name",
+                    ]);
+                }
+            }
+
+            // add tags to post
+            if (isset($request->tag_name)) {
+                for ($j = 0; sizeof($request->tag_name) > $j; $j++) {
+                    $get_tag_name = DB::table('tags')->where('tag', $request->tag_name[$j])->first();
+                    if ($get_tag_name) {
+                        DB::table('post_tag')->insert([
+                            'post_id' => $request->post_id,
+                            'tag_id' => $get_tag_name->id,
+                        ]);
+                    } else {
+                        $tag_id = Str::uuid();
+                        DB::table('tags')->insert([
+                            'id' => $tag_id,
+                            'tag' => $request->tag_name[$j],
+                        ]);
+                        DB::table('post_tag')->insert([
+                            'post_id' => $request->post_id,
+                            'tag_id' => $tag_id,
+                        ]);
+                    }
+                }
+            }
+
+            // get information post
+            $data = DB::table('posts')
+                ->join('users', 'posts.user_id', 'users.id')
+                ->where('posts.user_id', $userId)
+                ->where('posts.id', $request->post_id)
+                ->select([
+                    'posts.id',
+                    'posts.caption',
+                    'posts.location',
+                    'posts.created_at',
+                    'posts.updated_at',
+                ])
+                ->groupBy('posts.id')
+                ->get();
+
+            foreach ($data as $item) {
+                $item->post_tag = DB::table('post_tag')
+                    ->join('tags', 'post_tag.tag_id', 'tags.id')
+                    ->where('post_tag.post_id', $item->id)->get(["tags.tag", "tags.id"]);
+
+                $item->images_post = DB::table('post_image')->where('post_id', $item->id)->get(["url"]);
+
+                foreach ($item->images_post as $image_url) {
+                    $image_url->url = env('APP_URL') . "/$image_url->url";
+                }
+            }
+
+            return response()->json([
+                'status' => 200,
+                'message' => "Post successfully created",
+                "data" => $data,
+            ], 200);
+        } else {
+            return response()->json([
+                "status" => 401,
+                "message" => "please login to your account",
+            ], 401);
+        }
+    }
+
+
+    public function delete(Request $request)
+    {
+        $accessToken = request()->cookie('access_token');
+
+        if ($accessToken) {
+            $accessTokenModel = PersonalAccessToken::findToken($accessToken);
+            if ($accessTokenModel) {
+                $userId = $accessTokenModel->tokenable_id;
+            }
+
+            $validate = Validator::make($request->all(), [
+                'post_id' => 'required|exists:posts,id',
+            ]);
+            if ($validate->fails()) {
+                return response()->json([
+                    'status' => 401,
+                    'message' => $validate->errors(),
+                ], 401);
+            }
+
+            $delete_post = DB::table('posts')->whereId($request->post_id)->delete();
+            $get_post_image = DB::table('post_image')->where('post_id', $request->post_id)->get();
+            foreach ($get_post_image as $delete_post_image) {
+                if ($delete_post_image) {
+                    Storage::delete($delete_post_image->url);
+                }
+                $delete_post_image = DB::table('post_image')->where('id', $delete_post_image->id)->delete();
+            }
+
+            $delete_post_like = DB::table('post_like')->where('post_id', $request->post_id)->delete();
+            $delete_post_tag = DB::table('post_tag')->where('post_id', $request->post_id)->delete();
+            $delete_post_save = DB::table('save')->where('post_id', $request->post_id)->delete();
+            $get_post_comment = DB::table('comments')->where('post_id', $request->post_id)->get();
+            foreach ($get_post_comment as $item) {
+                DB::table('comment_reply')->where('comment_id', $item->comment_id)->delete();
+            }
+
+            $delete_post_comment = DB::table('comments')->where('post_id', $request->post_id)->delete();
+
+            if ($delete_post || $delete_post_image || $delete_post_like || $delete_post_tag || $delete_post_save || $delete_post_comment) {
+                return response()->json([
+                    'status' => 200,
+                    'message' => "he post was successfully deleted."
+                ], 200);
+            } else {
+
+                return response()->json([
+                    'status' => 500,
+                    'message' => "Failed to delete the post."
+                ], 500);
+            }
+        } else {
+            return response()->json([
+                "status" => 401,
+                "message" => "please login to your account",
+            ], 401);
+        }
+    }
+
+    public function detail(Request $request)
+    {
+
+        $accessToken = request()->cookie('access_token');
+
+        if ($accessToken) {
+            $accessTokenModel = PersonalAccessToken::findToken($accessToken);
+            if ($accessTokenModel) {
+                $userId = $accessTokenModel->tokenable_id;
+            }
+
+            $validate = Validator::make($request->all(), [
+                'post_id' => 'required|exists:posts,id',
+            ]);
+            if ($validate->fails()) {
+                return response()->json([
+                    'status' => 401,
+                    'message' => $validate->errors(),
+                ], 401);
+            }
+            $posts['post_detail'] = DB::table('posts')
+                ->join('users', 'posts.user_id', 'users.id')
+                ->where('posts.id', $request->post_id)
+                ->select([
+                    'posts.id',
+                    'posts.caption',
+                    'posts.user_id',
+                    'posts.location',
+                    'posts.created_at',
+                    'posts.updated_at',
+                ])
+                // ->groupBy('posts.id')
+                ->first();
+            // foreach ($posts['post_detail'] as $item) {
+
+            $posts['post_detail']->users = DB::table('users')->where('id', $posts['post_detail']->user_id)->get(['name', 'email', 'username', 'bio', 'profile']);
+            foreach ($posts['post_detail']->users as $item_user) {
+                $item_user->profile = env('APP_URL') . "/$item_user->profile";
+            }
+            $posts['post_detail']->tags = DB::table('post_tag')
+                ->join('tags', 'post_tag.tag_id', 'tags.id')
+                ->where('post_tag.post_id', $posts['post_detail']->id)
+                ->select([
+                    'tags.id',
+                    'tags.tag',
+                ])
+                ->get();
+
+
+
+            $likesCount = DB::table('post_like')
+                ->where('post_like.post_id', $posts['post_detail']->id)
+                ->count();
+
+            $posts['post_detail']->post_likes = DB::table('post_like')
+                ->join('users', 'post_like.user_id', 'users.id')
+                ->where('post_like.post_id', $posts['post_detail']->id)
+                ->select([
+                    'users.name',
+                    'users.profile'
+                ])
+                ->get();
+            foreach ($posts['post_detail']->post_likes as $profile_user_like) {
+                $profile_user_like->url = env('APP_URL') . "/$profile_user_like->url";
+            }
+            $posts['post_detail']->likes_count = $likesCount;
+
+            $countsaves = DB::table('save')->where('save.post_id', $posts['post_detail']->id)->count();
+
+            $posts['post_detail']->saves = DB::table('save')
+                ->join('users', 'save.user_id', 'users.id')
+                ->where('save.post_id', $posts['post_detail']->id)
+                ->select([
+                    'users.name',
+                    'users.profile',
+                ])->where('save.post_id', $posts['post_detail']->id)->get();
+            $posts['post_detail']->post_image = DB::table('post_image')->where('post_id', $posts['post_detail']->id)->get();
+            foreach ($posts['post_detail']->saves as $profile_user_save) {
+                $profile_user_save->url = env('APP_URL') . "/$profile_user_save->url";
+            }
+            $posts['post_detail']->saves = $countsaves;
+
+            $posts['post_detail']->post_image = DB::table('post_image')->where('post_id', $posts['post_detail']->id)->get();
+            foreach ($posts['post_detail']->post_image as $image_url) {
+                $image_url->url = env('APP_URL') . "/$image_url->url";
+            }
+            // }
+            return response()->json([
+                'status' => 200,
+                "data" => $posts['post_detail'],
+            ], 200);
         } else {
             return response()->json([
                 "status" => 401,

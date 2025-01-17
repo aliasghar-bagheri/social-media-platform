@@ -28,5 +28,10 @@ Route::get('tag', [TagController::class, 'index']);
 Route::post('tag', [TagController::class, 'store']);
 
 
-Route::get('posts', [PostController::class, 'list']);
-Route::post('posts', [PostController::class, 'store']);
+Route::prefix('posts')->group(function () {
+    Route::get('/', [PostController::class, 'list']);
+    Route::get('/detail', [PostController::class, 'detail']);
+    Route::post('/', [PostController::class, 'store']);
+    Route::post('/update', [PostController::class, 'update']);
+    Route::post('/delete', [PostController::class, 'delete']);
+});

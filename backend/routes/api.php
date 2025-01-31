@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\v1\api\LikeController;
 use App\Http\Controllers\v1\api\PostController;
 use App\Http\Controllers\v1\api\TagController;
 use App\Http\Controllers\v1\api\UserController;
@@ -34,4 +35,6 @@ Route::prefix('posts')->group(function () {
     Route::post('/', [PostController::class, 'store']);
     Route::post('/update', [PostController::class, 'update']);
     Route::post('/delete', [PostController::class, 'delete']);
+    Route::post('/like', [LikeController::class, 'like']);
+    Route::post('/unlike', [LikeController::class, 'unlike']);
 });

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\v1\api\CommentController;
 use App\Http\Controllers\v1\api\LikeController;
 use App\Http\Controllers\v1\api\PostController;
 use App\Http\Controllers\v1\api\SaveController;
@@ -44,4 +45,10 @@ Route::prefix('save')->group(function () {
     Route::get('/', [SaveController::class, 'list']);
     Route::post('/', [SaveController::class, 'save']);
     Route::post('/unsave', [SaveController::class, 'unsave']);
+});
+
+
+Route::prefix('comment')->group(function () {
+    Route::post('/', [CommentController::class, 'comment']);
+    Route::post('/reply', [CommentController::class, 'comment_reply']);
 });

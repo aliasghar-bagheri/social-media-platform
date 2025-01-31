@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\v1\api\LikeController;
 use App\Http\Controllers\v1\api\PostController;
+use App\Http\Controllers\v1\api\SaveController;
 use App\Http\Controllers\v1\api\TagController;
 use App\Http\Controllers\v1\api\UserController;
 use Illuminate\Http\Request;
@@ -37,4 +38,10 @@ Route::prefix('posts')->group(function () {
     Route::post('/delete', [PostController::class, 'delete']);
     Route::post('/like', [LikeController::class, 'like']);
     Route::post('/unlike', [LikeController::class, 'unlike']);
+});
+
+Route::prefix('save')->group(function () {
+    Route::get('/', [SaveController::class, 'list']);
+    Route::post('/', [SaveController::class, 'save']);
+    Route::post('/unsave', [SaveController::class, 'unsave']);
 });

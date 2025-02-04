@@ -19,6 +19,8 @@ const AddCommentButton = ({
   const handleAddComment = () => {
     startTransition(() => {
       console.log("Add comment");
+      console.log(postId);
+      console.log(userId);
     });
   };
 

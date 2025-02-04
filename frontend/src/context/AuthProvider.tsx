@@ -13,7 +13,7 @@ type AuthProviderProps = {
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<T_User | null>(null);
-  const [isAuthentication, setIsAuthentication] = useState<boolean>(false);
+  const [isAuthentication] = useState<boolean>(false);
 
   return (
     <AuthContext.Provider value={{ user, setUser, isAuthentication }}>

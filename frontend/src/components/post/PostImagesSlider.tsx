@@ -19,6 +19,8 @@ const PostImagesSlider = ({ postId }: PostImagesSliderProps) => {
     "/assets/images/example.jpg",
   ];
 
+  console.log(postId);
+
   return (
     <Carousel
       opts={{

@@ -6,6 +6,7 @@ type SavePostProps = {
 
 const SavePost = ({ postId }: SavePostProps) => {
   const [saved, setSaved] = useState<boolean>(false);
+  console.log(postId);
 
   return (
     <div

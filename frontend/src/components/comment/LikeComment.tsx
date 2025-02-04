@@ -8,6 +8,9 @@ type LikeCommentProps = {
 const LikeComment = ({ likerId, commentId }: LikeCommentProps) => {
   const [like, setLike] = useState<boolean>(false);
 
+  console.log(likerId);
+  console.log(commentId);
+
   return (
     <div
       id="like-comment"

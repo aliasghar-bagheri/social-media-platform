@@ -7,6 +7,8 @@ type LikePostProps = {
 const LikePost = ({ postId }: LikePostProps) => {
   const [like, setLike] = useState<boolean>(false);
 
+  console.log(postId);
+
   return (
     <div
       id="like-post"

@@ -29,6 +29,9 @@ const RelatedPosts = ({ postId }: RelatedPostsProps) => {
       image_url: "/assets/images/example.jpg",
     },
   ];
+
+  console.log(postId);
+
   return (
     <div className="w-full space-y-12">
       <Heading variant="h2-bold">More Related Posts</Heading>

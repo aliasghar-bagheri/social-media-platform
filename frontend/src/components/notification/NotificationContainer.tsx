@@ -28,6 +28,10 @@ const NotificationContainer = () => {
     },
   ];
 
+  const handleValueChange = (value: string) => {
+    setNotificationType(value as T_NotificationType);
+  };
+
   return (
     <div className="w-full space-y-14">
       <div className="flex w-full items-center justify-between">
@@ -46,7 +50,7 @@ const NotificationContainer = () => {
         </Heading>
         <SelectFilter
           value={notificationType}
-          onValueChange={setNotificationType}
+          onValueChange={handleValueChange}
           selectItemList={["all", "follow", "like", "comment"]}
         />
       </div>

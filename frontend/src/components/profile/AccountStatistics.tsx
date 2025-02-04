@@ -3,6 +3,8 @@ type AccountStatisticsProps = {
 };
 
 const AccountStatistics = ({ userId }: AccountStatisticsProps) => {
+  console.log(userId);
+
   return (
     <div className="flex w-full flex-col justify-center gap-10 sm:flex-row sm:items-center md:justify-start">
       <div className="body-medium space-y-2 text-center md:text-left">

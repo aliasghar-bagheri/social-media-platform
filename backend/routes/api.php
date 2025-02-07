@@ -33,7 +33,7 @@ Route::post('tag', [TagController::class, 'store']);
 
 Route::prefix('posts')->group(function () {
     Route::get('/', [PostController::class, 'list']);
-    Route::get('/detail', [PostController::class, 'detail']);
+    Route::get('/{id}', [PostController::class, 'detail']);
     Route::post('/', [PostController::class, 'store']);
     Route::post('/update', [PostController::class, 'update']);
     Route::post('/delete', [PostController::class, 'delete']);

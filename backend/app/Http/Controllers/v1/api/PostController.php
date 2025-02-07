@@ -12,7 +12,7 @@ use Laravel\Sanctum\PersonalAccessToken;
 
 class PostController extends Controller
 {
-    public function list()
+    public function list(Request $request)
     {
         $accessToken = request()->cookie('access_token');
 
@@ -30,9 +30,15 @@ class PostController extends Controller
                     'posts.location',
                     'posts.created_at',
                     'posts.updated_at',
-                ])
-                // ->groupBy('posts.id')
-                ->get();
+                ]);
+            if ($request->has('search')) {
+                $posts['all_post'] = $posts['all_post']->where(function ($query) use ($request) {
+                    $query->where('posts.caption', "LIKE", "%$request->search%")
+                        ->orWhere('posts.location', "LIKE", "%$request->search%");
+                });
+            }
+            $posts['all_post'] = $posts['all_post']->paginate();
+
             foreach ($posts['all_post'] as $item) {
 
                 $item->users = DB::table('users')->where('id', $item->user_id)->get(['name', 'email', 'username', 'bio', 'profile']);
@@ -63,7 +69,7 @@ class PostController extends Controller
                     ])
                     ->get();
                 foreach ($item->post_likes as $profile_user_like) {
-                    $profile_user_like->url = env('APP_URL') . "/$profile_user_like->url";
+                    $profile_user_like->profile = env('APP_URL') . "/$profile_user_like->profile";
                 }
                 $item->likes_count = $likesCount;
 
@@ -78,7 +84,7 @@ class PostController extends Controller
                     ])->where('save.post_id', $item->id)->get();
                 $item->post_image = DB::table('post_image')->where('post_id', $item->id)->get();
                 foreach ($item->saves as $profile_user_save) {
-                    $profile_user_save->url = env('APP_URL') . "/$profile_user_save->url";
+                    $profile_user_save->profile = env('APP_URL') . "/$profile_user_save->profile";
                 }
                 $item->saves = $countsaves;
 
@@ -390,7 +396,7 @@ class PostController extends Controller
         }
     }
 
-    public function detail(Request $request)
+    public function detail($post_id)
     {
 
         $accessToken = request()->cookie('access_token');
@@ -401,18 +407,18 @@ class PostController extends Controller
                 $userId = $accessTokenModel->tokenable_id;
             }
 
-            $validate = Validator::make($request->all(), [
+            $validate = Validator::make(['post_id' => $post_id], [
                 'post_id' => 'required|exists:posts,id',
             ]);
             if ($validate->fails()) {
                 return response()->json([
-                    'status' => 401,
+                    'status' => 404,
                     'message' => $validate->errors(),
-                ], 401);
+                ], 404);
             }
             $posts['post_detail'] = DB::table('posts')
                 ->join('users', 'posts.user_id', 'users.id')
-                ->where('posts.id', $request->post_id)
+                ->where('posts.id', $post_id)
                 ->select([
                     'posts.id',
                     'posts.caption',
@@ -453,7 +459,7 @@ class PostController extends Controller
                 ])
                 ->get();
             foreach ($posts['post_detail']->post_likes as $profile_user_like) {
-                $profile_user_like->url = env('APP_URL') . "/$profile_user_like->url";
+                $profile_user_like->url = env('APP_URL') . "/$profile_user_like->profile";
             }
             $posts['post_detail']->likes_count = $likesCount;
 
@@ -468,7 +474,7 @@ class PostController extends Controller
                 ])->where('save.post_id', $posts['post_detail']->id)->get();
             $posts['post_detail']->post_image = DB::table('post_image')->where('post_id', $posts['post_detail']->id)->get();
             foreach ($posts['post_detail']->saves as $profile_user_save) {
-                $profile_user_save->url = env('APP_URL') . "/$profile_user_save->url";
+                $profile_user_save->url = env('APP_URL') . "/$profile_user_save->profile";
             }
             $posts['post_detail']->saves = $countsaves;
 

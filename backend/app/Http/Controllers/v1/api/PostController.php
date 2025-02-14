@@ -21,30 +21,36 @@ class PostController extends Controller
             if ($accessTokenModel) {
                 $userId = $accessTokenModel->tokenable_id;
             }
-            $posts['all_post'] = DB::table('posts')
+            $all_post = DB::table('posts')
                 ->join('users', 'posts.user_id', 'users.id')
                 ->select([
                     'posts.id',
                     'posts.caption',
-                    'posts.user_id',
                     'posts.location',
                     'posts.created_at',
                     'posts.updated_at',
                 ]);
             if ($request->has('search')) {
-                $posts['all_post'] = $posts['all_post']->where(function ($query) use ($request) {
-                    $query->where('posts.caption', "LIKE", "%$request->search%")
-                        ->orWhere('posts.location', "LIKE", "%$request->search%");
+                $all_post = $all_post->where(function ($query) use ($request) {
+                    $query->where('posts.caption', "LIKE", "%{$request->search}%")
+                        ->orWhere('posts.location', "LIKE", "%{$request->search}%");
                 });
             }
-            $posts['all_post'] = $posts['all_post']->paginate();
+            $paginatedPosts = $all_post->paginate(15);
 
-            foreach ($posts['all_post'] as $item) {
+            foreach ($paginatedPosts->items() as $item) {
 
-                $item->users = DB::table('users')->where('id', $item->user_id)->get(['name', 'email', 'username', 'bio', 'profile']);
-                foreach ($item->users as $item_user) {
-                    $item_user->profile = env('APP_URL') . "/$item_user->profile";
-                }
+
+                $author = DB::table('users')
+                    ->join('posts', 'users.id', 'posts.user_id')
+                    ->select(['users.id', 'users.name', 'users.email', 'users.username', 'users.profile'])
+                    ->where('posts.id', $item->id)
+                    ->first();
+                $author->profile = env('APP_URL') . "/$author->profile";
+                $item->author = $author;
+                // foreach ($item->author as $item_author) {
+
+                // }
                 $item->tags = DB::table('post_tag')
                     ->join('tags', 'post_tag.tag_id', 'tags.id')
                     ->where('post_tag.post_id', $item->id)
@@ -72,30 +78,71 @@ class PostController extends Controller
                     $profile_user_like->profile = env('APP_URL') . "/$profile_user_like->profile";
                 }
                 $item->likes_count = $likesCount;
+                $item->is_like = DB::table('post_like')->where('post_id', $item->id)->where('user_id', $userId)->exists();
 
-                $countsaves = DB::table('save')->where('save.post_id', $item->id)->count();
 
-                $item->saves = DB::table('save')
+                $item->save = DB::table('save')
                     ->join('users', 'save.user_id', 'users.id')
                     ->where('save.post_id', $item->id)
                     ->select([
                         'users.name',
                         'users.profile',
                     ])->where('save.post_id', $item->id)->get();
+
+                $item->is_save = DB::table('save')->where('post_id', $item->id)->where('user_id', $userId)->exists();
+                $item->save_count = DB::table('save')->where('post_id', $item->id)->count();
+
+
                 $item->post_image = DB::table('post_image')->where('post_id', $item->id)->get();
-                foreach ($item->saves as $profile_user_save) {
+                foreach ($item->save as $profile_user_save) {
                     $profile_user_save->profile = env('APP_URL') . "/$profile_user_save->profile";
                 }
-                $item->saves = $countsaves;
 
                 $item->post_image = DB::table('post_image')->where('post_id', $item->id)->get();
                 foreach ($item->post_image as $image_url) {
                     $image_url->url = env('APP_URL') . "/$image_url->url";
                 }
+                $item->comment_count = DB::table('comments')->where('post_id', $item->id)->count();
+                $item->comment = DB::table('comments')
+                    ->where('post_id', $item->id)
+                    ->get();
+                foreach ($item->comment as $comment_item) {
+
+                    $comment_author = DB::table('users')
+                        ->join('comments', 'users.id', 'comments.user_id')
+                        ->select(['users.id', 'users.name', 'users.email', 'users.username', 'users.profile'])
+                        ->where('comments.id', $comment_item->id)
+                        ->first();
+                    $comment_author->profile = env('APP_URL') . "/$comment_author->profile";
+                    $comment_item->comment_author = $comment_author;
+
+
+                    
+                    $comment_item->reply_comment = DB::table('comment_reply')
+                        ->where('comment_id', $comment_item->id)
+                        ->get()
+                        ->map(function ($item_reply_comment) {
+                            $reply_comment_author = DB::table('users')
+                                ->where('id', $item_reply_comment->user_id)
+                                ->first(['id', 'name', 'email', 'username', 'profile']);
+
+                            if ($reply_comment_author) {
+                                $reply_comment_author->profile = env('APP_URL') . "/$reply_comment_author->profile";
+                            }
+
+                            
+                            $item_reply_comment->comment_author = $reply_comment_author;
+
+                            return $item_reply_comment;
+                        });
+                }
             }
             return response()->json([
                 'status' => 200,
-                "data" => $posts['all_post'],
+                'count' => $paginatedPosts->total(),
+                'next' => $paginatedPosts->nextPageUrl(),
+                'previous' => $paginatedPosts->previousPageUrl(),
+                "data" => $paginatedPosts->items(),
             ], 200);
         } else {
             return response()->json([

@@ -21,6 +21,7 @@ Route::post('/login', [UserController::class, 'login']);
 Route::prefix('user')->group(function () {
     Route::get('list', [UserController::class, 'list']);
     Route::get('profile', [UserController::class, 'profile']);
+    Route::get('user_profile/{id}', [UserController::class, 'user_profile']);
     Route::post('update', [UserController::class, 'update']);
     Route::post('update-password', [UserController::class, 'update_password']);
 });

@@ -130,9 +130,264 @@ class UserController extends Controller
             if ($user->exists()) {
                 $my_profile = $user->first(['id', 'name', 'phone', 'username', 'email', 'bio', 'profile', 'created_at', 'updated_at']);
                 $my_profile->profile = env('APP_URL') . "/$my_profile->profile";
+
+                $saved_post = DB::table('save')
+                    ->join('posts', 'save.post_id', 'posts.id')
+                    ->where('save.user_id', $userId)
+                    ->select([
+                        'posts.id',
+                        'posts.caption',
+                        'posts.location',
+                        'posts.created_at',
+                        'posts.updated_at',
+                    ])
+                    ->get();
+                foreach ($saved_post as $item_saved_post) {
+                    $item_saved_post->post_media = DB::table('post_image')->where('post_id', $item_saved_post->id)->get('url');
+                    foreach ($item_saved_post->post_media as $image_url) {
+                        $image_url->url = env('APP_URL') . "/$image_url->url";
+                    }
+                }
+
+
+                $my_posts = DB::table('posts')
+                    ->join('users', 'posts.user_id', 'users.id')
+                    ->where('posts.user_id', $userId)
+                    ->select([
+                        'posts.id',
+                        'posts.caption',
+                        'posts.location',
+                        'posts.created_at',
+                        'posts.updated_at',
+                    ]);
+                if ($request->has('search')) {
+                    $my_posts = $my_posts->where(function ($query) use ($request) {
+                        $query->where('posts.caption', "LIKE", "%{$request->search}%")
+                            ->orWhere('posts.location', "LIKE", "%{$request->search}%");
+                    });
+                }
+                $my_posts = $my_posts->get();
+                foreach ($my_posts as $item) {
+
+
+                    $author = DB::table('users')
+                        ->join('posts', 'users.id', 'posts.user_id')
+                        ->select(['users.id', 'users.name', 'users.email', 'users.username', 'users.profile'])
+                        ->where('posts.id', $item->id)
+                        ->first();
+                    $author->profile = env('APP_URL') . "/$author->profile";
+                    $item->author = $author;
+
+                    $item->tags = DB::table('post_tag')
+                        ->join('tags', 'post_tag.tag_id', 'tags.id')
+                        ->where('post_tag.post_id', $item->id)
+                        ->select([
+                            'tags.id',
+                            'tags.tag',
+                        ])
+                        ->get();
+
+
+
+                    $likesCount = DB::table('post_like')
+                        ->where('post_like.post_id', $item->id)
+                        ->count();
+
+                    $item->post_likes = DB::table('post_like')
+                        ->join('users', 'post_like.user_id', 'users.id')
+                        ->where('post_like.post_id', $item->id)
+                        ->select([
+                            'users.name',
+                            'users.profile'
+                        ])
+                        ->get();
+                    foreach ($item->post_likes as $profile_user_like) {
+                        $profile_user_like->profile = env('APP_URL') . "/$profile_user_like->profile";
+                    }
+                    $item->likes_count = $likesCount;
+                    $item->is_like = DB::table('post_like')->where('post_id', $item->id)->where('user_id', $userId)->exists();
+
+
+
+                    $item->is_save = DB::table('save')->where('post_id', $item->id)->where('user_id', $userId)->exists();
+
+                    $item->post_image = DB::table('post_image')->where('post_id', $item->id)->get();
+                    foreach ($item->post_image as $image_url) {
+                        $image_url->url = env('APP_URL') . "/$image_url->url";
+                    }
+                    $item->comment_count = DB::table('comments')->where('post_id', $item->id)->count();
+                    $item->comment = DB::table('comments')
+                        ->where('post_id', $item->id)
+                        ->get();
+                    foreach ($item->comment as $comment_item) {
+
+                        $comment_author = DB::table('users')
+                            ->join('comments', 'users.id', 'comments.user_id')
+                            ->select(['users.id', 'users.name', 'users.email', 'users.username', 'users.profile'])
+                            ->where('comments.id', $comment_item->id)
+                            ->first();
+                        $comment_author->profile = env('APP_URL') . "/$comment_author->profile";
+                        $comment_item->comment_author = $comment_author;
+
+
+
+                        $comment_item->reply_comment = DB::table('comment_reply')
+                            ->where('comment_id', $comment_item->id)
+                            ->get()
+                            ->map(function ($item_reply_comment) {
+                                $reply_comment_author = DB::table('users')
+                                    ->where('id', $item_reply_comment->user_id)
+                                    ->first(['id', 'name', 'email', 'username', 'profile']);
+
+                                if ($reply_comment_author) {
+                                    $reply_comment_author->profile = env('APP_URL') . "/$reply_comment_author->profile";
+                                }
+
+
+                                $item_reply_comment->comment_author = $reply_comment_author;
+
+                                return $item_reply_comment;
+                            });
+                    }
+                }
+
                 return response()->json([
                     'status' => 200,
                     'user' => $my_profile,
+                    'saved_post' => $saved_post,
+                    'my_posts' => $my_posts,
+                ], 200);
+            }
+        } elseif ($accessToken == null) {
+            return response()->json([
+                "status" => 401,
+                "message" => "please login to your account",
+            ], 401);
+        }
+    }
+
+
+
+    public function user_profile(Request $request, $id)
+    {
+        $accessToken = $request->cookie('access_token');
+        if ($accessToken) {
+            $accessTokenModel = PersonalAccessToken::findToken($accessToken);
+            if ($accessTokenModel) {
+                $userId = $accessTokenModel->tokenable_id;
+            }
+            $user = DB::table('users')->whereId($id);
+            if ($user->exists()) {
+                $user_profile = $user->first(['id', 'name','username', 'email', 'bio', 'profile']);
+                $user_profile->profile = env('APP_URL') . "/$user_profile->profile";
+
+
+
+                $user_posts = DB::table('posts')
+                    ->join('users', 'posts.user_id', 'users.id')
+                    ->where('posts.user_id', $id)
+                    ->select([
+                        'posts.id',
+                        'posts.caption',
+                        'posts.location',
+                        'posts.created_at',
+                        'posts.updated_at',
+                    ]);
+                if ($request->has('search')) {
+                    $user_posts = $user_posts->where(function ($query) use ($request) {
+                        $query->where('posts.caption', "LIKE", "%{$request->search}%")
+                            ->orWhere('posts.location', "LIKE", "%{$request->search}%");
+                    });
+                }
+                $user_posts = $user_posts->get();
+                foreach ($user_posts as $item) {
+
+
+                    $author = DB::table('users')
+                        ->join('posts', 'users.id', 'posts.user_id')
+                        ->select(['users.id', 'users.name', 'users.email', 'users.username', 'users.profile'])
+                        ->where('posts.id', $item->id)
+                        ->first();
+                    $author->profile = env('APP_URL') . "/$author->profile";
+                    $item->author = $author;
+
+                    $item->tags = DB::table('post_tag')
+                        ->join('tags', 'post_tag.tag_id', 'tags.id')
+                        ->where('post_tag.post_id', $item->id)
+                        ->select([
+                            'tags.id',
+                            'tags.tag',
+                        ])
+                        ->get();
+
+
+
+                    $likesCount = DB::table('post_like')
+                        ->where('post_like.post_id', $item->id)
+                        ->count();
+
+                    $item->post_likes = DB::table('post_like')
+                        ->join('users', 'post_like.user_id', 'users.id')
+                        ->where('post_like.post_id', $item->id)
+                        ->select([
+                            'users.name',
+                            'users.profile'
+                        ])
+                        ->get();
+                    foreach ($item->post_likes as $profile_user_like) {
+                        $profile_user_like->profile = env('APP_URL') . "/$profile_user_like->profile";
+                    }
+                    $item->likes_count = $likesCount;
+                    $item->is_like = DB::table('post_like')->where('post_id', $item->id)->where('user_id', $userId)->exists();
+
+
+
+                    $item->is_save = DB::table('save')->where('post_id', $item->id)->where('user_id', $userId)->exists();
+
+                    $item->post_image = DB::table('post_image')->where('post_id', $item->id)->get();
+                    foreach ($item->post_image as $image_url) {
+                        $image_url->url = env('APP_URL') . "/$image_url->url";
+                    }
+                    $item->comment_count = DB::table('comments')->where('post_id', $item->id)->count();
+                    $item->comment = DB::table('comments')
+                        ->where('post_id', $item->id)
+                        ->get();
+                    foreach ($item->comment as $comment_item) {
+
+                        $comment_author = DB::table('users')
+                            ->join('comments', 'users.id', 'comments.user_id')
+                            ->select(['users.id', 'users.name', 'users.email', 'users.username', 'users.profile'])
+                            ->where('comments.id', $comment_item->id)
+                            ->first();
+                        $comment_author->profile = env('APP_URL') . "/$comment_author->profile";
+                        $comment_item->comment_author = $comment_author;
+
+
+
+                        $comment_item->reply_comment = DB::table('comment_reply')
+                            ->where('comment_id', $comment_item->id)
+                            ->get()
+                            ->map(function ($item_reply_comment) {
+                                $reply_comment_author = DB::table('users')
+                                    ->where('id', $item_reply_comment->user_id)
+                                    ->first(['id', 'name', 'email', 'username', 'profile']);
+
+                                if ($reply_comment_author) {
+                                    $reply_comment_author->profile = env('APP_URL') . "/$reply_comment_author->profile";
+                                }
+
+
+                                $item_reply_comment->comment_author = $reply_comment_author;
+
+                                return $item_reply_comment;
+                            });
+                    }
+                }
+
+                return response()->json([
+                    'status' => 200,
+                    'user_profile' => $user_profile,
+                    'user_posts' => $user_posts,
                 ], 200);
             }
         } elseif ($accessToken == null) {

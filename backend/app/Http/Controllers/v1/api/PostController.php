@@ -48,9 +48,7 @@ class PostController extends Controller
                     ->first();
                 $author->profile = env('APP_URL') . "/$author->profile";
                 $item->author = $author;
-                // foreach ($item->author as $item_author) {
 
-                // }
                 $item->tags = DB::table('post_tag')
                     ->join('tags', 'post_tag.tag_id', 'tags.id')
                     ->where('post_tag.post_id', $item->id)
@@ -81,22 +79,8 @@ class PostController extends Controller
                 $item->is_like = DB::table('post_like')->where('post_id', $item->id)->where('user_id', $userId)->exists();
 
 
-                $item->save = DB::table('save')
-                    ->join('users', 'save.user_id', 'users.id')
-                    ->where('save.post_id', $item->id)
-                    ->select([
-                        'users.name',
-                        'users.profile',
-                    ])->where('save.post_id', $item->id)->get();
 
                 $item->is_save = DB::table('save')->where('post_id', $item->id)->where('user_id', $userId)->exists();
-                $item->save_count = DB::table('save')->where('post_id', $item->id)->count();
-
-
-                $item->post_image = DB::table('post_image')->where('post_id', $item->id)->get();
-                foreach ($item->save as $profile_user_save) {
-                    $profile_user_save->profile = env('APP_URL') . "/$profile_user_save->profile";
-                }
 
                 $item->post_image = DB::table('post_image')->where('post_id', $item->id)->get();
                 foreach ($item->post_image as $image_url) {

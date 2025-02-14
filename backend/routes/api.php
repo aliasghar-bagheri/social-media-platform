@@ -38,13 +38,7 @@ Route::prefix('posts')->group(function () {
     Route::post('/update', [PostController::class, 'update']);
     Route::post('/delete', [PostController::class, 'delete']);
     Route::post('/like', [LikeController::class, 'like']);
-    Route::post('/unlike', [LikeController::class, 'unlike']);
-});
-
-Route::prefix('save')->group(function () {
-    Route::get('/', [SaveController::class, 'list']);
-    Route::post('/', [SaveController::class, 'save']);
-    Route::post('/unsave', [SaveController::class, 'unsave']);
+    Route::post('/save', [SaveController::class, 'save']);
 });
 
 
